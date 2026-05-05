@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>🎤 Alternative ESC Party</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a12;--surface:#13131f;--card:#1c1c2e;--border:#2a2a40;
+  --teal:#00d4b4;--pink:#ff3d7f;--gold:#ffc947;
+  --white:#f0f0f8;--gray:#6b6b8a;
+}
+body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh}
+.app{max-width:680px;margin:0 auto;padding:16px;min-height:100vh}
+.header{text-align:center;padding:24px 0 20px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,8vw,3.2rem);letter-spacing:.05em;background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.header-sub{font-size:.75rem;color:var(--gray);letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+.mode-bar{display:flex;gap:8px;margin-bottom:24px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.mode-btn{flex:1;padding:10px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--gray)}
+.mode-btn.active{background:var(--card);color:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;color:var(--teal);margin-bottom:14px}
+.song-input-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.song-nr{width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--teal);flex-shrink:0}
+input,select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;width:100%}
+input:focus,select:focus{border-color:var(--teal)}
+input::placeholder{color:var(--gray)}
+select option{background:var(--card)}
+.btn{border:none;border-radius:10px;padding:12px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;transition:all .2s;width:100%;margin-top:8px}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#00a891);color:#000}
+.btn-pink{background:linear-gradient(135deg,var(--pink),#cc1f5e);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e6a800);color:#000}
+.btn-ghost{background:var(--surface);color:var(--gray);border:1px solid var(--border)}
+.btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.badge-waiting{background:rgba(107,107,138,.2);color:var(--gray);border:1px solid var(--border)}
+.badge-open{background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)}
+.badge-closed{background:rgba(255,61,127,.15);color:var(--pink);border:1px solid rgba(255,61,127,.3)}
+.badge-revealed{background:rgba(255,201,71,.15);color:var(--gold);border:1px solid rgba(255,201,71,.3)}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.info-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:.85rem;color:var(--gray);line-height:1.6;margin-bottom:14px}
+.info-box strong{color:var(--white)}
+.progress-wrap{margin-bottom:16px}
+.progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--gray);margin-bottom:6px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--pink));border-radius:2px;transition:width .4s ease}
+.kat-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.kat-tab{padding:5px 9px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.75rem;font-weight:600;cursor:pointer;position:relative;font-family:'DM Sans',sans-serif;transition:all .2s}
+.kat-tab.ernst.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.1)}
+.kat-tab.lustig.active{border-color:var(--pink);color:var(--pink);background:rgba(255,61,127,.1)}
+.dot{position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%}
+.kat-header{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:10px;margin-bottom:10px}
+.kat-header.ernst{background:rgba(0,212,180,.12);border-left:3px solid var(--teal)}
+.kat-header.lustig{background:rgba(255,61,127,.12);border-left:3px solid var(--pink)}
+.kat-label{font-weight:600;font-size:.95rem}
+.kat-desc{font-size:.75rem;color:var(--gray);margin-top:2px}
+.song-vote-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(42,42,64,.6)}
+.song-vote-row:last-child{border-bottom:none}
+.song-vote-nr{width:22px;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--teal);text-align:center;flex-shrink:0}
+.song-vote-name{flex:1;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song-vote-name.own{color:var(--gray);font-style:italic}
+.pts-chips{display:flex;gap:3px;flex-shrink:0}
+.pt-chip{width:32px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif}
+.pt-chip:hover:not(.taken){border-color:var(--teal);color:var(--teal)}
+.pt-chip.selected{background:var(--teal);border-color:var(--teal);color:#000}
+.pt-chip.taken{opacity:.22;cursor:not-allowed}
+.own-tag{font-size:.7rem;color:var(--pink);background:rgba(255,61,127,.1);border:1px solid rgba(255,61,127,.25);border-radius:4px;padding:1px 5px;flex-shrink:0}
+.vote-count{font-size:.8rem;color:var(--gray);text-align:center;margin-top:10px}
+.pts-legend{display:flex;gap:4px;margin-bottom:10px;justify-content:flex-end}
+.pts-legend-chip{width:32px;height:22px;border-radius:4px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;font-family:'DM Sans',sans-serif}
+.tabs{display:flex;gap:6px;margin-bottom:16px}
+.tab{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--gray);font-size:.8rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;font-family:'DM Sans',sans-serif}
+.tab.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.08)}
+.total-rank-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.total-rank-row:last-child{border-bottom:none}
+.rank-medal{font-size:1.2rem;width:28px;text-align:center}
+.rank-song{flex:1}
+.rank-song-name{font-weight:600;font-size:.9rem}
+.rank-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--pink));margin-top:4px}
+.rank-pts{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--gold)}
+.kat-result{margin-bottom:12px}
+.kat-result-header{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:8px 8px 0 0}
+.kat-result-header.ernst{background:rgba(0,212,180,.15)}
+.kat-result-header.lustig{background:rgba(255,61,127,.15)}
+.kat-result-name{font-weight:600;font-size:.9rem}
+.kat-result-winner{font-size:.8rem;color:var(--gold)}
+.kat-result-rows{background:var(--surface);border-radius:0 0 8px 8px;overflow:hidden}
+.kat-result-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border)}
+.kat-result-row:last-child{border-bottom:none}
+.kat-result-rank{width:20px;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gray);text-align:center}
+.kat-result-song{flex:1;font-size:.85rem}
+.kat-bar-wrap{width:70px}
+.kat-bar{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--teal),var(--pink))}
+.kat-result-pts{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--teal)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--teal);color:var(--white);padding:10px 20px;border-radius:10px;font-size:.85rem;font-weight:500;z-index:999;animation:fadeup .3s ease;white-space:nowrap}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.spinner{text-align:center;padding:40px;color:var(--gray);font-size:.9rem}
+.config-screen{max-width:500px;margin:60px auto;padding:32px;background:var(--card);border-radius:20px;border:1px solid var(--border)}
+.config-screen h2{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--teal);margin-bottom:8px}
+.config-screen p{color:var(--gray);font-size:.85rem;margin-bottom:20px;line-height:1.6}
+.config-screen label{display:block;font-size:.8rem;color:var(--gray);margin-bottom:4px;margin-top:12px;text-transform:uppercase;letter-spacing:.05em}
+.config-screen input{margin-bottom:0}
+</style>
+</head>
+<body>
+<div id="root"><div class="spinner">Lade…</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// KONFIGURATION — hier deine Supabase-Zugangsdaten eintragen
+// ═══════════════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://ysbkkrvkhoukbvsozili.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzYmtrcnZraG91a2J2c296aWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDk2NTMsImV4cCI6MjA5MzU4NTY1M30.p5N8dZU1FqXcuce90FQGsfpUiw61c85D6SfBZ-h0Rx0";
+// ═══════════════════════════════════════════════════════════════════
+
+const KATEGORIEN = [
+  {id:"E1",emoji:"⭐",label:"Bestes Gesamtpaket",        desc:"Der Song, der trotz allem irgendwie hängen bleibt",gruppe:"ernst"},
+  {id:"E2",emoji:"⭐",label:"Stimmgewalt oder Skill",     desc:"Wo man sagen muss: Eigentlich kann der/die echt was",gruppe:"ernst"},
+  {id:"E3",emoji:"⭐",label:"Beste visuelle Inszenierung",desc:"Das professionellste oder künstlerischste Video",gruppe:"ernst"},
+  {id:"E4",emoji:"⭐",label:"Ohrwurm-Garantie",           desc:"Welcher Song verfolgt euch die nächsten drei Tage?",gruppe:"ernst"},
+  {id:"L1",emoji:"😂",label:"Der WTF?!-Award",           desc:"Der Moment, in dem alle fassungslos auf den Bildschirm starren",gruppe:"lustig"},
+  {id:"L2",emoji:"😂",label:"Bestes Kostümverbrechen",    desc:"Fragwürdigste Kleidung oder Maskerade",gruppe:"lustig"},
+  {id:"L3",emoji:"😂",label:"Textliche Tiefe (Ironisch)", desc:"Zeilen, die so absurd sind, dass sie wehtun",gruppe:"lustig"},
+  {id:"L4",emoji:"😂",label:"Größter Fremdscham-Faktor",  desc:"Man will weggucken, aber kann nicht",gruppe:"lustig"},
+];
+const PTS = [12,10,8,6,5,4,3,1];
+const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8."];
+
+// ── State ──────────────────────────────────────────────────────────
+let sb = null;
+let appState = {phase:"setup", songs:[]};
+let allVotes = [];
+let localBallot = {};   // katId -> songIdx -> pts
+let localOwnSong = "";
+let localSubmitted = false;
+let localMode = "guest"; // "guest"|"host"|"results"
+let localActiveKat = 0;
+let localResultTab = "gesamt";
+let toastTimer = null;
+let channel = null;
+
+// ── Init ───────────────────────────────────────────────────────────
+function init() {
+  if (SUPABASE_URL === "DEINE_SUPABASE_URL") {
+    renderConfigScreen();
+    return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  loadAll().then(() => {
+    subscribeRealtime();
+    render();
+  });
+}
+
+async function loadAll() {
+  try {
+    const [{data:sd},{data:vd}] = await Promise.all([
+      sb.from("esc_state").select("*").eq("id",1).single(),
+      sb.from("esc_votes").select("*")
+    ]);
+    if (sd) appState = {phase: sd.phase, songs: sd.songs || []};
+    if (vd) allVotes = vd.map(r => r.ballot);
+  } catch(e) { console.error(e); }
+}
+
+function subscribeRealtime() {
+  if (channel) channel.unsubscribe();
+  channel = sb.channel("esc-party")
+    .on("postgres_changes",{event:"*",schema:"public",table:"esc_state"}, payload => {
+      if (payload.new) appState = {phase: payload.new.phase, songs: payload.new.songs || []};
+      render();
+    })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"esc_votes"}, payload => {
+      if (payload.new) allVotes.push(payload.new.ballot);
+      render();
+    })
+    .subscribe();
+}
+
+// ── DB actions ─────────────────────────────────────────────────────
+async function hostStart(songs) {
+  await sb.from("esc_state").upsert({id:1, phase:"open", songs});
+  await sb.from("esc_votes").delete().neq("id",0);
+  appState = {phase:"open", songs};
+  allVotes = [];
+  showToast("Abstimmung gestartet! 🎤");
+  render();
+}
+async function hostClose() {
+  await sb.from("esc_state").upsert({id:1, phase:"closed", songs:appState.songs});
+  appState.phase = "closed";
+  showToast("Abstimmung geschlossen.");
+  render();
+}
+async function hostReveal() {
+  await sb.from("esc_state").upsert({id:1, phase:"revealed", songs:appState.songs});
+  appState.phase = "revealed";
+  showToast("Ergebnisse freigegeben! 🏆");
+  render();
+}
+async function hostReset() {
+  await sb.from("esc_state").upsert({id:1, phase:"setup", songs:[]});
+  await sb.from("esc_votes").delete().neq("id",0);
+  appState = {phase:"setup", songs:[]};
+  allVotes = [];
+  localBallot = {}; localOwnSong = ""; localSubmitted = false;
+  showToast("Zurückgesetzt.");
+  render();
+}
+async function submitVote() {
+  await sb.from("esc_votes").insert({ballot: localBallot});
+  allVotes.push(localBallot);
+  localSubmitted = true;
+  showToast("Stimme abgegeben! ✅");
+  render();
+}
+
+// ── Scoring ────────────────────────────────────────────────────────
+function calcResults() {
+  const totals = {}, byKat = {};
+  KATEGORIEN.forEach(k => { byKat[k.id] = {}; appState.songs.forEach((_,i) => byKat[k.id][i]=0); });
+  appState.songs.forEach((_,i) => totals[i]=0);
+  allVotes.forEach(vote => {
+    Object.entries(vote||{}).forEach(([katId,songMap]) => {
+      Object.entries(songMap||{}).forEach(([sidx,pts]) => {
+        byKat[katId][sidx] = (byKat[katId][sidx]||0) + Number(pts);
+        totals[sidx] = (totals[sidx]||0) + Number(pts);
+      });
+    });
+  });
+  return {byKat, totals};
+}
+
+// ── Toast ──────────────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  if (el) el.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+  const t = document.createElement("div");
+  t.id = "toast"; t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  toastTimer = setTimeout(() => t.remove(), 2800);
+}
+
+// ── Chip logic ─────────────────────────────────────────────────────
+function toggleChip(katId, songIdx, pts) {
+  if (!localBallot[katId]) localBallot[katId] = {};
+  const kat = localBallot[katId];
+  if (kat[songIdx] === pts) {
+    delete kat[songIdx];
+  } else {
+    Object.keys(kat).forEach(k => { if (kat[k]===pts) delete kat[k]; });
+    kat[songIdx] = pts;
+  }
+  render();
+}
+
+function usedPts(katId) {
+  return new Set(Object.values(localBallot[katId]||{}));
+}
+
+function canSubmit() {
+  return KATEGORIEN.every(k => {
+    const m = localBallot[k.id]||{};
+    const assigned = Object.entries(m).filter(([idx]) => idx !== String(localOwnSong));
+    return assigned.length === 8;
+  });
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function render() {
+  const root = document.getElementById("root");
+  if (!root) return;
+
+  const {phase, songs} = appState;
+  const showResultsTab = phase === "revealed";
+
+  let html = `
+  <div class="app">
+    <div class="header">
+      <div class="header-title">🎤 Alternative ESC Party</div>
+      <div class="header-sub">Voting System</div>
+    </div>
+    <div class="mode-bar">
+      <button class="mode-btn ${localMode==="guest"?"active":""}" onclick="setMode('guest')">🗳 Abstimmen</button>
+      <button class="mode-btn ${localMode==="host"?"active":""}" onclick="setMode('host')">👑 Host</button>
+      ${showResultsTab ? `<button class="mode-btn ${localMode==="results"?"active":""}" onclick="setMode('results')">🏆 Ergebnisse</button>` : ""}
+    </div>`;
+
+  if (localMode === "host") html += renderHost(phase, songs);
+  else if (localMode === "results" && phase === "revealed") html += renderResults();
+  else html += renderGuest(phase, songs);
+
+  html += `</div>`;
+  root.innerHTML = html;
+}
+
+function setMode(m) { localMode = m; render(); }
+
+// ── Host ───────────────────────────────────────────────────────────
+function renderHost(phase, songs) {
+  if (phase === "setup") {
+    let inputs = "";
+    for (let i=0;i<8;i++) {
+      inputs += `<div class="song-input-row">
+        <div class="song-nr">${i+1}</div>
+        <input id="song${i}" placeholder="Song ${i+1} — Titel / Interpret" oninput="checkHostReady()" style="margin-bottom:0"/>
+      </div>`;
+    }
+    return `<div class="card">
+      <div class="card-title">🎵 Songs eintragen</div>
+      <div class="info-box">Trag alle 8 Songs in der Reihenfolge der Running Order ein.</div>
+      ${inputs}
+      <button class="btn btn-teal" id="startBtn" disabled onclick="hostStartClick()">Abstimmung starten 🚀</button>
+    </div>`;
+  }
+
+  const badgeClass = phase==="open"?"badge-open":phase==="closed"?"badge-closed":"badge-revealed";
+  const badgeLabel = phase==="open"?"Abstimmung läuft":phase==="closed"?"Geschlossen":"Ergebnisse sichtbar";
+  const pulseDot = phase==="open"?`<span class="pulse"></span>`:"";
+
+  let songList = songs.map((s,i) => `
+    <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);align-items:center">
+      <div class="song-nr">${i+1}</div>
+      <div style="font-size:.9rem">${s}</div>
+    </div>`).join("");
+
+  let actions = "";
+  if (phase==="open") actions = `<button class="btn btn-pink" onclick="hostClose()">Abstimmung schließen 🔒</button>`;
+  if (phase==="closed") actions = `<button class="btn btn-gold" onclick="hostReveal()">Ergebnisse freigeben 🏆</button>`;
+  actions += `<button class="btn btn-ghost" onclick="if(confirm('Wirklich zurücksetzen?'))hostReset()">Neu starten / Reset</button>`;
+
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">👑 Host-Panel</div>
+      <span class="status-badge ${badgeClass}">${pulseDot}${badgeLabel}</span>
+    </div>
+    <div class="vote-count">${allVotes.length} Stimmzettel eingegangen</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">${actions}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Songs</div>
+    ${songList}
+  </div>`;
+}
+
+function checkHostReady() {
+  const btn = document.getElementById("startBtn");
+  if (!btn) return;
+  const all = Array.from({length:8},(_,i)=>document.getElementById("song"+i)).every(el=>el&&el.value.trim());
+  btn.disabled = !all;
+}
+
+function hostStartClick() {
+  const songs = Array.from({length:8},(_,i)=>document.getElementById("song"+i)?.value.trim()||`Song ${i+1}`);
+  hostStart(songs);
+}
+
+// ── Guest ──────────────────────────────────────────────────────────
+function renderGuest(phase, songs) {
+  if (phase==="setup") return `<div class="card"><div class="info-box"><strong>Noch keine Abstimmung aktiv.</strong><br>Warte bis der Host die Songs eingetragen hat.</div></div>`;
+
+  if (phase==="closed"||phase==="revealed") return `<div class="card"><div style="text-align:center;padding:20px 0">
+    ${phase==="closed"
+      ? `<div style="font-size:2rem;margin-bottom:8px">🔒</div><div style="font-weight:600">Abstimmung geschlossen</div><div style="color:var(--gray);font-size:.85rem;margin-top:6px">Der Host gibt gleich die Ergebnisse frei…</div>`
+      : `<div style="font-size:2rem;margin-bottom:8px">🏆</div><div style="font-weight:600">Ergebnisse sind sichtbar!</div><div style="color:var(--gray);font-size:.85rem;margin-top:6px">Wechsel oben auf den Ergebnisse-Tab.</div>`}
+  </div></div>`;
+
+  if (localSubmitted) return `<div class="card" style="text-align:center;padding:32px 20px">
+    <div style="font-size:3rem;margin-bottom:12px">✅</div>
+    <div style="font-weight:600;font-size:1.1rem;margin-bottom:8px">Stimme abgegeben!</div>
+    <div style="color:var(--gray);font-size:.85rem">Warte auf die Ergebnisse vom Host.</div>
+    <div class="vote-count" style="margin-top:16px">${allVotes.length} Stimmzettel gesamt</div>
+  </div>`;
+
+  // Own song selector
+  if (localOwnSong === "") {
+    let opts = songs.map((s,i)=>`<option value="${i}">#${i+1} — ${s}</option>`).join("");
+    return `<div class="card">
+      <div class="card-title">Welcher Song ist deiner?</div>
+      <select onchange="setOwnSong(this.value)"><option value="">— Auswählen —</option>${opts}</select>
+      <div style="font-size:.8rem;color:var(--gray)">Deinen eigenen Song kannst du nicht bewerten.</div>
+    </div>`;
+  }
+
+  const filledKats = KATEGORIEN.filter(k=>Object.keys(localBallot[k.id]||{}).length>0).length;
+  const kat = KATEGORIEN[localActiveKat];
+  const katBallot = localBallot[kat.id]||{};
+  const used = usedPts(kat.id);
+
+  // Kat tabs
+  let katTabs = KATEGORIEN.map((k,i)=>{
+    const filled = Object.keys(localBallot[k.id]||{}).length;
+    const dotColor = filled>=8?"var(--teal)":filled>0?"var(--gold)":"";
+    const dot = dotColor?`<span class="dot" style="background:${dotColor}"></span>`:"";
+    return `<button class="kat-tab ${k.gruppe} ${i===localActiveKat?"active":""}" onclick="setKat(${i})">${k.id}${dot}</button>`;
+  }).join("");
+
+  // Song rows
+  let songRows = songs.map((s,i)=>{
+    const isOwn = String(i)===String(localOwnSong);
+    const assigned = katBallot[i];
+    if (isOwn) return `<div class="song-vote-row">
+      <div class="song-vote-nr">${i+1}</div>
+      <div class="song-vote-name own">${s}</div>
+      <span class="own-tag">dein Song</span>
+    </div>`;
+    const chips = PTS.map(p=>{
+      const sel = assigned===p;
+      const taken = !sel && used.has(p);
+      return `<button class="pt-chip ${sel?"selected":""} ${taken?"taken":""}" onclick="${taken?"":"toggleChip('"+kat.id+"',"+i+","+p+")"}">${p}</button>`;
+    }).join("");
+    return `<div class="song-vote-row">
+      <div class="song-vote-nr">${i+1}</div>
+      <div class="song-vote-name">${s}</div>
+      <div class="pts-chips">${chips}</div>
+    </div>`;
+  }).join("");
+
+  // Pts legend
+  const legend = PTS.map(p=>{
+    const isUsed = used.has(p);
+    return `<div class="pts-legend-chip" style="color:${isUsed?(p===12?"var(--gold)":"var(--teal)"):"var(--gray)"};text-decoration:${isUsed?"line-through":"none"}">${p}</div>`;
+  }).join("");
+
+  const ready = canSubmit();
+
+  return `
+  <div class="progress-wrap">
+    <div class="progress-label"><span>Kategorien ausgefüllt</span><span>${filledKats} / ${KATEGORIEN.length}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${(filledKats/KATEGORIEN.length)*100}%"></div></div>
+  </div>
+  <div class="kat-tabs">${katTabs}</div>
+  <div class="card">
+    <div class="kat-header ${kat.gruppe}">
+      <div><div class="kat-label">${kat.emoji} ${kat.label}</div><div class="kat-desc">${kat.desc}</div></div>
+    </div>
+    <div class="pts-legend">${legend}</div>
+    ${songRows}
+  </div>
+  <button class="btn btn-teal" ${ready?"":"disabled"} onclick="${ready?"submitVote()":""}">
+    ${ready?"Abstimmen ✅":`Noch ${KATEGORIEN.length - filledKats} Kategorie(n) ausfüllen…`}
+  </button>
+  <div class="vote-count">${allVotes.length} Stimmzettel bisher</div>`;
+}
+
+function setOwnSong(v) { localOwnSong = v; render(); }
+function setKat(i) { localActiveKat = i; render(); }
+
+// ── Results ────────────────────────────────────────────────────────
+function renderResults() {
+  const {byKat, totals} = calcResults();
+  const ranked = Object.entries(totals)
+    .map(([idx,pts])=>({idx:Number(idx),pts,name:appState.songs[idx]}))
+    .sort((a,b)=>b.pts-a.pts);
+  const maxPts = ranked[0]?.pts||1;
+
+  let content = "";
+
+  if (localResultTab==="gesamt") {
+    const rows = ranked.map((r,i)=>`
+      <div class="total-rank-row">
+        <div class="rank-medal">${MEDALS[i]}</div>
+        <div class="rank-song">
+          <div class="rank-song-name">${r.name}</div>
+          <div class="rank-bar" style="width:${(r.pts/maxPts)*100}%"></div>
+        </div>
+        <div class="rank-pts">${r.pts}</div>
+      </div>`).join("");
+    content = `<div class="card">${rows}<div class="vote-count" style="margin-top:12px">${allVotes.length} Stimmzettel · Max ${allVotes.length*12*8} Punkte möglich</div></div>`;
+  } else {
+    const gruppe = localResultTab;
+    content = KATEGORIEN.filter(k=>k.gruppe===gruppe).map(kat=>{
+      const scores = Object.entries(byKat[kat.id]||{})
+        .map(([idx,pts])=>({idx:Number(idx),pts,name:appState.songs[idx]}))
+        .sort((a,b)=>b.pts-a.pts);
+      const top = scores[0]?.pts||1;
+      const rows = scores.map((s,i)=>`
+        <div class="kat-result-row">
+          <div class="kat-result-rank">${MEDALS[i]}</div>
+          <div class="kat-result-song">${s.name}</div>
+          <div class="kat-bar-wrap"><div class="kat-bar" style="width:${(s.pts/top)*100}%"></div></div>
+          <div class="kat-result-pts">${s.pts}</div>
+        </div>`).join("");
+      return `<div class="kat-result">
+        <div class="kat-result-header ${kat.gruppe}">
+          <span class="kat-result-name">${kat.emoji} ${kat.label}</span>
+          ${scores[0]?`<span class="kat-result-winner">🏆 ${scores[0].name}</span>`:""}
+        </div>
+        <div class="kat-result-rows">${rows}</div>
+      </div>`;
+    }).join("");
+  }
+
+  return `
+  <div class="tabs">
+    <div class="tab ${localResultTab==="gesamt"?"active":""}" onclick="setResultTab('gesamt')">🏆 Gesamt</div>
+    <div class="tab ${localResultTab==="ernst"?"active":""}" onclick="setResultTab('ernst')">⭐ Ernst</div>
+    <div class="tab ${localResultTab==="lustig"?"active":""}" onclick="setResultTab('lustig')">😂 Lustig</div>
+  </div>
+  ${content}`;
+}
+
+function setResultTab(t) { localResultTab = t; render(); }
+
+// ── Config screen (shown when credentials not set) ─────────────────
+function renderConfigScreen() {
+  document.getElementById("root").innerHTML = `
+  <div class="config-screen">
+    <h2>🎤 ESC Party Setup</h2>
+    <p>Trag deine Supabase-Zugangsdaten ein und speichere die Datei neu. Die Daten findest du in deinem Supabase-Projekt unter <strong>Project Settings → API</strong>.</p>
+    <label>Supabase URL</label>
+    <input id="cfgUrl" placeholder="https://xxxx.supabase.co" style="margin-bottom:12px"/>
+    <label>Supabase Anon Key</label>
+    <input id="cfgKey" placeholder="eyJhbGci…" style="margin-bottom:0"/>
+    <button class="btn btn-teal" onclick="copyConfig()" style="margin-top:16px">In Zwischenablage kopieren (für index.html)</button>
+    <div id="cfgHint" style="font-size:.75rem;color:var(--gray);margin-top:10px;line-height:1.6"></div>
+  </div>`;
+}
+
+function copyConfig() {
+  const url = document.getElementById("cfgUrl").value.trim();
+  const key = document.getElementById("cfgKey").value.trim();
+  if (!url||!key) { document.getElementById("cfgHint").textContent="Bitte beide Felder ausfüllen."; return; }
+  const snippet = `const SUPABASE_URL = "${url}";\nconst SUPABASE_ANON_KEY = "${key}";`;
+  navigator.clipboard.writeText(snippet).then(()=>{
+    document.getElementById("cfgHint").innerHTML="✅ Kopiert! Ersetze die zwei Zeilen oben in der index.html mit diesem Text, dann neu hochladen.";
+  });
+}
+
+// ── Boot ───────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
