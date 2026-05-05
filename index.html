@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🎤 ESC Voting</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a12;--surface:#13131f;--card:#1c1c2e;--border:#2a2a40;--teal:#00d4b4;--pink:#ff3d7f;--gold:#ffc947;--red:#ff4444;--white:#f0f0f8;--gray:#6b6b8a}
+html,body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh}
+.app{max-width:680px;margin:0 auto;padding:16px 16px 48px}
+.header{text-align:center;padding:20px 0 14px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,7vw,2.8rem);letter-spacing:.05em;background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.header-sub{font-size:.72rem;color:var(--gray);letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+.header-nick{font-size:.8rem;color:var(--teal);margin-top:6px;font-weight:600}
+.mode-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+.mode-badge.party{background:rgba(255,61,127,.15);color:var(--pink);border:1px solid rgba(255,61,127,.3)}
+.mode-badge.esc{background:rgba(255,201,71,.15);color:var(--gold);border:1px solid rgba(255,201,71,.3)}
+.nav{display:flex;gap:5px;margin-bottom:18px;background:var(--surface);border-radius:12px;padding:4px;border:1px solid var(--border);flex-wrap:wrap}
+.nav-btn{flex:1;min-width:60px;padding:9px 5px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--gray);white-space:nowrap}
+.nav-btn.active{background:var(--card);color:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:.08em;color:var(--teal);margin-bottom:12px}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;width:100%;display:block;margin-bottom:10px}
+input:focus,select:focus,textarea:focus{border-color:var(--teal)}
+input::placeholder,textarea::placeholder{color:var(--gray)}
+select option{background:var(--card)}
+.field label{display:block;font-size:.73rem;color:var(--gray);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field{margin-bottom:10px}
+.btn{border:none;border-radius:10px;padding:11px 18px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .2s;width:100%;display:block;text-align:center;margin-top:8px}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#00a891);color:#000}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e6a800);color:#000}
+.btn-red{background:linear-gradient(135deg,var(--red),#cc0000);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--gray);border:1px solid var(--border)}
+.btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row .btn{flex:1;margin-top:0}
+.info{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.83rem;color:var(--gray);line-height:1.6;margin-bottom:10px}
+.info strong{color:var(--white)}
+.info-locked{text-align:center;padding:24px;font-weight:600;color:var(--pink);font-size:.9rem}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:.88rem;font-weight:500}
+.toggle-desc{font-size:.73rem;color:var(--gray);margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:var(--gray);border-radius:50%;transition:.3s}
+.toggle input:checked+.toggle-slider{background:var(--teal)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:#000}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.stat-row:last-child{border-bottom:none}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--teal)}
+.progress-wrap{margin-bottom:12px}
+.progress-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--gray);margin-bottom:4px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--pink));border-radius:2px;transition:width .4s ease}
+.kat-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.kat-tab{padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.72rem;font-weight:600;cursor:pointer;position:relative;font-family:'DM Sans',sans-serif;transition:all .2s}
+.kat-tab.ernst.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.1)}
+.kat-tab.lustig.active{border-color:var(--pink);color:var(--pink);background:rgba(255,61,127,.1)}
+.kat-tab.esc-kat.active{border-color:var(--gold);color:var(--gold);background:rgba(255,201,71,.1)}
+.dot{position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%}
+.kat-header{padding:8px 12px;border-radius:10px;margin-bottom:10px}
+.kat-header.ernst{background:rgba(0,212,180,.1);border-left:3px solid var(--teal)}
+.kat-header.lustig{background:rgba(255,61,127,.1);border-left:3px solid var(--pink)}
+.kat-header.esc-kat{background:rgba(255,201,71,.08);border-left:3px solid var(--gold)}
+.kat-label{font-weight:600;font-size:.9rem}
+.kat-desc{font-size:.72rem;color:var(--gray);margin-top:2px}
+/* Song vote row — two-line layout */
+.song-vote-row{padding:8px 0;border-bottom:1px solid rgba(42,42,64,.5)}
+.song-vote-row:last-child{border-bottom:none}
+.song-vote-top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.song-vote-bottom{display:flex;justify-content:flex-end;padding-left:27px}
+.song-nr{width:20px;font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:var(--teal);text-align:center;flex-shrink:0}
+.song-name{flex:1;font-size:.85rem;font-weight:500;line-height:1.3;word-break:break-word}
+.song-name.own{color:var(--gray);font-style:italic}
+.pts-chips{display:flex;gap:3px;flex-wrap:wrap}
+.pt-chip{width:32px;height:28px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.69rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif}
+.pt-chip:hover:not(.taken){border-color:var(--teal);color:var(--teal)}
+.pt-chip.selected{background:var(--teal);border-color:var(--teal);color:#000}
+.pt-chip.taken{opacity:.2;cursor:not-allowed}
+.own-tag{font-size:.68rem;color:var(--pink);background:rgba(255,61,127,.1);border:1px solid rgba(255,61,127,.25);border-radius:4px;padding:2px 6px;flex-shrink:0}
+.pts-legend{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;justify-content:flex-end}
+.pts-legend-chip{min-width:30px;height:20px;border-radius:4px;padding:0 4px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.67rem;font-weight:700;font-family:'DM Sans',sans-serif}
+.ro-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.ro-row:last-child{border-bottom:none}
+.ro-nr{width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--teal);flex-shrink:0}
+.ro-info{flex:1;min-width:0}
+.ro-title{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro-url{font-size:.72rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--gray);font-size:.76rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;font-family:'DM Sans',sans-serif}
+.tab.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.08)}
+.rank-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.rank-row:last-child{border-bottom:none}
+.rank-medal{font-size:1.1rem;width:26px;text-align:center;flex-shrink:0}
+.rank-song{flex:1;min-width:0}
+.rank-song-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--pink));margin-top:3px}
+.rank-pts{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--gold);flex-shrink:0}
+.kat-result{margin-bottom:10px}
+.kat-result-hdr{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:8px 8px 0 0;gap:8px}
+.kat-result-hdr.ernst{background:rgba(0,212,180,.15)}
+.kat-result-hdr.lustig{background:rgba(255,61,127,.15)}
+.kat-result-hdr.esc-kat{background:rgba(255,201,71,.12)}
+.kat-result-name{font-weight:600;font-size:.87rem;flex-shrink:0}
+.kat-result-winner{font-size:.73rem;color:var(--gold);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kat-result-rows{background:var(--surface);border-radius:0 0 8px 8px}
+.kat-result-row{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border)}
+.kat-result-row:last-child{border-bottom:none}
+.kat-result-rank{width:18px;font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:var(--gray);text-align:center;flex-shrink:0}
+.kat-result-song{flex:1;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kat-bar-wrap{width:55px;flex-shrink:0}
+.kat-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--pink))}
+.kat-result-pts{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--teal);flex-shrink:0}
+.playlist-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.72rem;color:var(--teal);word-break:break-all;font-family:monospace;margin-bottom:8px}
+.mode-selector{display:flex;gap:8px;margin-bottom:12px}
+.mode-opt{flex:1;padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .2s}
+.mode-opt:hover{border-color:var(--gray)}
+.mode-opt.selected.party{border-color:var(--pink);background:rgba(255,61,127,.08)}
+.mode-opt.selected.esc{border-color:var(--gold);background:rgba(255,201,71,.08)}
+.mode-opt-icon{font-size:1.5rem;margin-bottom:4px}
+.mode-opt-label{font-weight:700;font-size:.85rem}
+.mode-opt-desc{font-size:.72rem;color:var(--gray);margin-top:2px}
+.host-song-input{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.host-song-input .song-nr{flex-shrink:0}
+.host-song-input input{margin-bottom:0;flex:1}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--teal);color:var(--white);padding:10px 20px;border-radius:10px;font-size:.83rem;font-weight:500;z-index:9999;animation:fadeup .3s ease;white-space:nowrap;max-width:90vw;text-align:center}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.spinner{text-align:center;padding:50px;color:var(--gray)}
+</style>
+</head>
+<body>
+<div id="root"><div class="spinner">⚙️ Verbinde…</div></div>
+<script>
+const SUPABASE_URL      = "https://ysbkkrvkhoukbvsozili.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzYmtrcnZraG91a2J2c296aWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDk2NTMsImV4cCI6MjA5MzU4NTY1M30.p5N8dZU1FqXcuce90FQGsfpUiw61c85D6SfBZ-h0Rx0";
+const HOST_PASSWORD     = "eschost2025";
+
+// ── Kategorien (Party-Modus) ───────────────────────────────────────────────
+const KATEGORIEN = [
+  {id:"E1",emoji:"⭐",label:"Bestes Gesamtpaket",        desc:"Der Song, der trotz allem irgendwie hängen bleibt",gruppe:"ernst"},
+  {id:"E2",emoji:"⭐",label:"Stimmgewalt oder Skill",     desc:"Eigentlich kann der/die echt was",gruppe:"ernst"},
+  {id:"E3",emoji:"⭐",label:"Beste visuelle Inszenierung",desc:"Das professionellste oder künstlerischste Video",gruppe:"ernst"},
+  {id:"E4",emoji:"⭐",label:"Ohrwurm-Garantie",           desc:"Welcher Song verfolgt euch die nächsten drei Tage?",gruppe:"ernst"},
+  {id:"L1",emoji:"😂",label:"Der WTF?!-Award",           desc:"Der Moment, in dem alle fassungslos starren",gruppe:"lustig"},
+  {id:"L2",emoji:"😂",label:"Bestes Kostümverbrechen",    desc:"Fragwürdigste Kleidung oder Maskerade",gruppe:"lustig"},
+  {id:"L3",emoji:"😂",label:"Textliche Tiefe (Ironisch)", desc:"Zeilen die so absurd sind, dass sie wehtun",gruppe:"lustig"},
+  {id:"L4",emoji:"😂",label:"Größter Fremdscham-Faktor",  desc:"Man will weggucken, aber kann nicht",gruppe:"lustig"},
+];
+
+// ESC-Modus hat nur eine Kategorie: Gesamtbewertung
+const KATEGORIEN_ESC = [
+  {id:"ESC",emoji:"🎤",label:"ESC Gesamtbewertung",desc:"Vergib deine Punkte für alle Länder",gruppe:"esc-kat"},
+];
+
+const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12.","13.","14.","15.","16.","17.","18.","19.","20.","21.","22.","23.","24.","25.","26."];
+const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false};
+
+// ── Punkteschlüssel dynamisch berechnen ────────────────────────────────────
+// Party-Modus: n = Anzahl zu bewertende Songs (ohne eigenen)
+// ESC-Modus:   n = Gesamtanzahl Songs
+// Grundprinzip: von oben [12,10,8,...] und unten [1,3,4,...] auffüllen,
+// Mitte wird je nach n gekappt. Minimum 5 Songs, klassisch ESC ab 10+.
+function calcPointScale(n) {
+  // Vollständige Skala (ESC-Standard für 10+)
+  const full = [12,10,8,7,6,5,4,3,2,1];
+  if (n >= 10) return full;
+  if (n <= 0)  return [];
+  // Für n < 10: wir nehmen die äußeren Werte und lassen die Mitte weg
+  // Reihenfolge der Entnahme: 12,10,8,1,3,4,6,7,2,5 (außen nach innen)
+  const priority = [12,10,8,1,3,4,6,7,2,5];
+  return priority.slice(0,n).sort((a,b)=>b-a);
+}
+
+let sb, appState={visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8};
+let allUsers=[], currentUser=null, isHost=false;
+let activeNav="song", activeKat=0, resultTab="gesamt";
+let _ballot=null, _editingVote=false, channel;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init(){
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  await loadAll();
+  const saved = localStorage.getItem("esc_user");
+  if(saved){ try{ const {n,p}=JSON.parse(saved); await tryLogin(n,p,true); }catch(e){} }
+  subscribeRealtime();
+  render();
+}
+
+async function loadAll(){
+  try{
+    const [{data:sd},{data:ud}] = await Promise.all([
+      sb.from("esc_state").select("*").eq("id",1).maybeSingle(),
+      sb.from("esc_users").select("id,nickname,song_title,youtube_url,ballot,has_voted")
+    ]);
+    if(sd) appState={...appState,...sd,visibility:{...DEFAULT_VIS,...(sd.visibility||{})}};
+    if(ud) allUsers=ud;
+    if(currentUser){ const f=allUsers.find(u=>u.id===currentUser.id); if(f) currentUser={...currentUser,...f}; }
+  }catch(e){console.error(e);}
+}
+
+function subscribeRealtime(){
+  if(channel) sb.removeChannel(channel);
+  channel = sb.channel("esc-rt")
+    .on("postgres_changes",{event:"*",schema:"public",table:"esc_state"},async()=>{await loadAll();render();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"esc_users"},async()=>{await loadAll();render();})
+    .subscribe();
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function hashPin(p){ let h=0; for(const c of String(p)) h=(h*31+c.charCodeAt(0))&0xffffffff; return h.toString(16); }
+
+async function tryLogin(nick,pin,silent=false){
+  nick=(nick||"").trim();
+  if(!nick||!pin||String(pin).length!==4){ if(!silent) showToast("Nickname und 4-stellige PIN eingeben."); return false; }
+  const {data:ex}=await sb.from("esc_users").select("*").eq("nickname_lower",nick.toLowerCase()).maybeSingle();
+  if(ex){
+    if(ex.pin_hash!==hashPin(pin)){ if(!silent) showToast("Falsche PIN für diesen Nickname."); return false; }
+    currentUser=ex;
+  } else {
+    if(silent) return false;
+    const {data:cr,error}=await sb.from("esc_users").insert({
+      nickname:nick,nickname_lower:nick.toLowerCase(),pin_hash:hashPin(pin),
+      song_title:null,youtube_url:null,ballot:null,has_voted:false
+    }).select().single();
+    if(error){ if(!silent) showToast("Nickname vergeben – anderen Namen oder PIN versuchen."); return false; }
+    currentUser=cr; allUsers.push(cr);
+  }
+  localStorage.setItem("esc_user",JSON.stringify({n:nick,p:pin}));
+  if(!silent) showToast("Willkommen, "+currentUser.nickname+"! 🎤");
+  _ballot = currentUser.ballot ? JSON.parse(JSON.stringify(currentUser.ballot)) : {};
+  activeNav="song"; return true;
+}
+
+function logout(){ localStorage.removeItem("esc_user"); currentUser=null; isHost=false; _ballot=null; _editingVote=false; render(); }
+
+// ── State helpers ──────────────────────────────────────────────────────────
+async function saveState(partial){
+  const merged={...appState,...partial,visibility:{...appState.visibility,...(partial.visibility||{})}};
+  await sb.from("esc_state").upsert({id:1,...merged});
+  appState=merged;
+}
+
+function getMode(){ return appState.mode||"party"; }
+function getSongCount(){ return Math.max(5, Number(appState.song_count)||8); }
+function getKategorien(){ return getMode()==="esc" ? KATEGORIEN_ESC : KATEGORIEN; }
+
+// Points for voting: in party mode exclude own song
+function getPointScale(excludeOwn){
+  const n = getSongCount() - (excludeOwn ? 1 : 0);
+  return calcPointScale(n);
+}
+
+// ── Host actions ───────────────────────────────────────────────────────────
+async function hostToggleVisibility(key){
+  await saveState({visibility:{...appState.visibility,[key]:!appState.visibility[key]}});
+  render();
+}
+
+async function hostGenerateRunningOrder(){
+  const users=allUsers.filter(u=>u.song_title&&u.youtube_url);
+  if(!users.length){showToast("Keine Songs eingereicht.");return;}
+  const shuffled=[...users].sort(()=>Math.random()-.5).map(u=>({title:u.song_title,youtube_url:u.youtube_url}));
+  await saveState({running_order:shuffled});
+  showToast("Running Order generiert! 🎲"); render();
+}
+
+async function hostSetEscSongs(){
+  const count = getSongCount();
+  const songs = [];
+  for(let i=0;i<count;i++){
+    const title = (document.getElementById("esc_song_"+i)||{}).value||"";
+    const url   = (document.getElementById("esc_url_"+i)||{}).value||"";
+    if(!title.trim()){ showToast("Bitte alle Song-Titel ausfüllen."); return; }
+    songs.push({title:title.trim(), youtube_url:url.trim()||null});
+  }
+  await saveState({running_order:songs});
+  showToast("Songs gespeichert! ✅"); render();
+}
+
+function getPlaylistUrl(){
+  const ids=(appState.running_order||[]).map(s=>extractYtId(s.youtube_url)).filter(Boolean);
+  return ids.length ? "https://www.youtube.com/watch_videos?video_ids="+ids.join(",") : null;
+}
+
+async function hostReset(what){
+  if(what==="all"){
+    if(!confirm("ALLES zurücksetzen? Alle Nutzer, Songs und Votes werden gelöscht!")) return;
+    await sb.from("esc_users").delete().neq("id",0);
+    await saveState({visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8});
+    allUsers=[]; currentUser=null; isHost=false; _ballot=null;
+    localStorage.removeItem("esc_user");
+    showToast("Alles zurückgesetzt.");
+  } else {
+    if(!confirm("Alle Songs und Votes löschen? Nutzer-Accounts bleiben.")) return;
+    await sb.from("esc_users").update({song_title:null,youtube_url:null,ballot:null,has_voted:false}).neq("id",0);
+    await saveState({running_order:[],phase:"setup"});
+    showToast("Songs & Votes gelöscht.");
+  }
+  await loadAll(); render();
+}
+
+// ── User actions ───────────────────────────────────────────────────────────
+async function doSubmitSong(){
+  const title=(document.getElementById("s_title")||{}).value||"";
+  const url  =(document.getElementById("s_url")||{}).value||"";
+  if(!title.trim()||!url.trim()){showToast("Titel und URL eingeben.");return;}
+  if(!extractYtId(url)){showToast("Keine gültige YouTube-URL.");return;}
+  const {data}=await sb.from("esc_users").update({song_title:title.trim(),youtube_url:url.trim()}).eq("id",currentUser.id).select().single();
+  if(data) currentUser={...currentUser,...data};
+  await loadAll(); showToast("Song eingereicht! 🎵"); render();
+}
+
+async function clearSong(){
+  if(!confirm("Song zurückziehen?")) return;
+  await sb.from("esc_users").update({song_title:null,youtube_url:null}).eq("id",currentUser.id);
+  currentUser={...currentUser,song_title:null,youtube_url:null}; render();
+}
+
+function toggleChip(katId,songIdx,pts){
+  if(!_ballot) _ballot={};
+  if(!_ballot[katId]) _ballot[katId]={};
+  const kat=_ballot[katId];
+  if(kat[songIdx]===pts){delete kat[songIdx];}
+  else{ Object.keys(kat).forEach(k=>{if(kat[k]===pts)delete kat[k];}); kat[songIdx]=pts; }
+  render();
+}
+
+async function doSubmitVote(){
+  _editingVote=false;
+  const {data}=await sb.from("esc_users").update({ballot:_ballot,has_voted:true}).eq("id",currentUser.id).select().single();
+  if(data) currentUser={...currentUser,...data};
+  await loadAll(); showToast("Stimme abgegeben! ✅"); render();
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function extractYtId(url){
+  if(!url) return null;
+  const m=url.match(/(?:youtu\.be\/|[?&]v=|\/embed\/)([A-Za-z0-9_-]{11})/);
+  return m?m[1]:null;
+}
+function showToast(msg){
+  document.querySelectorAll(".toast").forEach(e=>e.remove());
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2800);
+}
+function copyToClipboard(text){navigator.clipboard.writeText(text).then(()=>showToast("Link kopiert!"));}
+function setNav(id){activeNav=id;render();}
+function setKat(i){activeKat=i;render();}
+function setResultTab(t){resultTab=t;render();}
+
+function calcResults(){
+  const songs=appState.running_order||[];
+  const kats=getKategorien();
+  const totals={},byKat={};
+  kats.forEach(k=>{byKat[k.id]={};songs.forEach((_,i)=>byKat[k.id][i]=0);});
+  songs.forEach((_,i)=>totals[i]=0);
+  allUsers.filter(u=>u.ballot).forEach(u=>{
+    Object.entries(u.ballot||{}).forEach(([katId,sm])=>{
+      Object.entries(sm||{}).forEach(([sidx,pts])=>{
+        if(byKat[katId]){byKat[katId][sidx]=(byKat[katId][sidx]||0)+Number(pts);totals[sidx]=(totals[sidx]||0)+Number(pts);}
+      });
+    });
+  });
+  return{byKat,totals,songs,kats};
+}
+
+// ── Main render ────────────────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById("root"); if(!root) return;
+  if(!currentUser&&!isHost){root.innerHTML=renderLogin();return;}
+  const vis=appState.visibility;
+  const hasRO=(appState.running_order||[]).length>0;
+  const mode=getMode();
+  let navItems=[];
+  if(!isHost){
+    if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
+    if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
+    if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
+    if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
+  } else {
+    navItems=[{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"}];
+  }
+  if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"song";
+  const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
+  let content="";
+  if(isHost){
+    if(activeNav==="panel")   content=renderHostPanel();
+    if(activeNav==="order")   content=renderRunningOrder(true);
+    if(activeNav==="results") content=renderResults();
+  } else {
+    if(activeNav==="song")    content=renderSongSubmit();
+    if(activeNav==="order")   content=renderRunningOrder(false);
+    if(activeNav==="vote")    content=renderVoting();
+    if(activeNav==="results") content=renderResults();
+  }
+  const modeBadge = mode==="esc"
+    ? `<div><span class="mode-badge esc">🌍 ESC-Modus</span></div>`
+    : `<div><span class="mode-badge party">🎉 Party-Modus</span></div>`;
+  root.innerHTML=`<div class="app">
+    <div class="header">
+      <div class="header-title">🎤 ${mode==="esc"?"ESC":"Alternative ESC"} Voting</div>
+      <div class="header-sub">Voting System</div>
+      ${modeBadge}
+      ${currentUser?`<div class="header-nick">${currentUser.nickname} · <a href="#" onclick="logout();return false;" style="color:var(--gray);font-size:.7rem">Abmelden</a></div>`:""}
+      ${isHost?`<div class="header-nick" style="color:var(--gold)">👑 Host · <a href="#" onclick="isHost=false;render();return false;" style="color:var(--gray);font-size:.7rem">Beenden</a></div>`:""}
+    </div>
+    <div class="nav">${navHtml}</div>
+    ${content}
+  </div>`;
+}
+
+// ── Login ──────────────────────────────────────────────────────────────────
+function renderLogin(){
+  return `<div class="app"><div class="header">
+    <div class="header-title">🎤 ESC Voting</div>
+    <div class="header-sub">Voting System</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Willkommen!</div>
+    <div class="info">Gib einen Nickname und eine selbst gewählte 4-stellige PIN ein. Damit kannst du später weitermachen, auch wenn du den Browser schließt.</div>
+    <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="field" style="margin-top:8px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn btn-teal" style="margin-top:12px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
+    <div style="text-align:center;margin-top:12px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.75rem;color:var(--gray)">Host-Zugang</a></div>
+  </div></div>`;
+}
+async function doLogin(){
+  const nick=(document.getElementById("l_nick")||{}).value;
+  const pin =(document.getElementById("l_pin")||{}).value;
+  if(await tryLogin(nick,pin)) render();
+}
+function doHostLogin(){
+  const pw=prompt("Host-Passwort:");
+  if(pw===HOST_PASSWORD){isHost=true;activeNav="panel";showToast("Host-Modus aktiviert 👑");render();}
+  else if(pw!==null) showToast("Falsches Passwort.");
+}
+
+// ── Song Submit (Party only) ───────────────────────────────────────────────
+function renderSongSubmit(){
+  const vis=appState.visibility;
+  const hasSong=currentUser?.song_title;
+  if(hasSong){
+    const ytId=extractYtId(currentUser.youtube_url);
+    return `<div class="card">
+      <div class="card-title">🎵 Dein Song</div>
+      <div class="info"><strong>${currentUser.song_title}</strong><br/><span style="font-size:.73rem;color:var(--teal)">${currentUser.youtube_url}</span></div>
+      ${ytId?`<a href="https://youtube.com/watch?v=${ytId}" target="_blank" class="btn btn-ghost" style="margin-top:4px">▶ auf YouTube ansehen</a>`:""}
+      ${vis.submit?`<button class="btn btn-ghost" onclick="clearSong()">Song ändern</button>`:""}
+    </div>`;
+  }
+  if(!vis.submit) return `<div class="card"><div class="info-locked">🔒 Song-Einreichung ist aktuell geschlossen.</div></div>`;
+  return `<div class="card">
+    <div class="card-title">🎵 Deinen Song einreichen</div>
+    <div class="info">Dein Name wird <strong>nicht</strong> mit dem Song verknüpft — der Host sieht nur Titel und URL.</div>
+    <div class="field"><label>Song-Titel / Interpret</label><input id="s_title" placeholder="z.B. Waterloo – ABBA" maxlength="80" style="margin-bottom:0"/></div>
+    <div class="field" style="margin-top:8px"><label>YouTube-URL</label><input id="s_url" placeholder="https://youtube.com/watch?v=…" style="margin-bottom:0"/></div>
+    <button class="btn btn-teal" style="margin-top:12px" onclick="doSubmitSong()">Song einreichen 🎵</button>
+  </div>`;
+}
+
+// ── Running Order ──────────────────────────────────────────────────────────
+function renderRunningOrder(hostView){
+  const ro=appState.running_order||[];
+  const plUrl=getPlaylistUrl();
+  let html=`<div class="card"><div class="card-title">📋 Running Order</div>`;
+  if(!ro.length){
+    html+=`<div class="info">${hostView?"Noch keine Running Order generiert.":"Noch nicht veröffentlicht."}</div>`;
+  } else {
+    html+=ro.map((s,i)=>{
+      const ytId=extractYtId(s.youtube_url);
+      return `<div class="ro-row">
+        <div class="ro-nr">${i+1}</div>
+        <div class="ro-info"><div class="ro-title">${s.title}</div>${s.youtube_url?`<div class="ro-url">${s.youtube_url}</div>`:""}        </div>
+        ${ytId?`<a href="https://youtube.com/watch?v=${ytId}" target="_blank" style="font-size:1.3rem;text-decoration:none;flex-shrink:0">▶️</a>`:""}
+      </div>`;
+    }).join("");
+  }
+  if(hostView&&plUrl){
+    html+=`<div style="margin-top:14px">
+      <div class="playlist-box">${plUrl}</div>
+      <a href="${plUrl}" target="_blank" class="btn btn-teal" style="margin-top:0">▶ YouTube-Playlist öffnen</a>
+      <button class="btn btn-ghost" onclick="copyToClipboard('${plUrl}')">Link kopieren</button>
+    </div>`;
+  }
+  html+=`</div>`; return html;
+}
+
+// ── Voting ─────────────────────────────────────────────────────────────────
+function renderVoting(){
+  const vis=appState.visibility;
+  const ro=appState.running_order||[];
+  const mode=getMode();
+  if(!vis.voting) return `<div class="card"><div class="info-locked">🔒 Abstimmung ist noch nicht geöffnet.</div></div>`;
+  if(!ro.length)  return `<div class="card"><div class="info">Keine Songs in der Running Order.</div></div>`;
+  if(!_ballot) _ballot=currentUser?.ballot ? JSON.parse(JSON.stringify(currentUser.ballot)) : {};
+  if(currentUser?.has_voted&&!_editingVote){
+    return `<div class="card" style="text-align:center;padding:28px 16px">
+      <div style="font-size:2.5rem;margin-bottom:10px">✅</div>
+      <div style="font-weight:600;font-size:1rem;margin-bottom:6px">Stimme abgegeben!</div>
+      <div style="color:var(--gray);font-size:.83rem">Warte auf die Ergebnisse vom Host.</div>
+      <div style="color:var(--gray);font-size:.73rem;margin-top:6px">${allUsers.filter(u=>u.has_voted).length} von ${allUsers.length} haben abgestimmt</div>
+      <button class="btn btn-ghost" style="margin-top:14px" onclick="_editingVote=true;render()">Stimme ändern</button>
+    </div>`;
+  }
+
+  const kats = getKategorien();
+  if(activeKat >= kats.length) activeKat = 0;
+
+  // Own song index (party mode only)
+  const ownIdx = mode==="party"
+    ? ro.findIndex(s=>currentUser?.song_title&&s.title===currentUser.song_title&&s.youtube_url===currentUser.youtube_url)
+    : -1;
+  const hasOwn = ownIdx >= 0;
+
+  const pts = getPointScale(hasOwn);
+  const kat = kats[activeKat];
+  const katBallot = _ballot[kat.id]||{};
+  const used = new Set(Object.values(katBallot));
+  const needed = pts.length; // must assign all point values
+  const filledKats = kats.filter(k=>{
+    const assigned=Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx));
+    return assigned.length >= needed;
+  }).length;
+
+  // Kat tabs
+  const katTabs = kats.map((k,i)=>{
+    const assigned=Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx)).length;
+    const dotColor=assigned>=needed?"var(--teal)":assigned>0?"var(--gold)":"";
+    return `<button class="kat-tab ${k.gruppe} ${i===activeKat?"active":""}" onclick="setKat(${i})">
+      ${k.id}${dotColor?`<span class="dot" style="background:${dotColor}"></span>`:""}
+    </button>`;
+  }).join("");
+
+  // Legend
+  const legend = pts.map(p=>{
+    const u=used.has(p);
+    return `<div class="pts-legend-chip" style="color:${u?(p===12?"var(--gold)":"var(--teal)"):"var(--gray)"};text-decoration:${u?"line-through":"none"}">${p}</div>`;
+  }).join("");
+
+  // Song rows — two-line layout
+  const songRows = ro.map((s,i)=>{
+    const isOwn = i===ownIdx;
+    const assigned = katBallot[i];
+    if(isOwn) return `<div class="song-vote-row">
+      <div class="song-vote-top">
+        <div class="song-nr">${i+1}</div>
+        <div class="song-name own">${s.title}</div>
+        <span class="own-tag">dein Song</span>
+      </div>
+    </div>`;
+    const chips = pts.map(p=>{
+      const sel=assigned===p, taken=!sel&&used.has(p);
+      return `<button class="pt-chip ${sel?"selected":""} ${taken?"taken":""}" onclick="${taken?"":"toggleChip('"+kat.id+"',"+i+","+p+")"}">${p}</button>`;
+    }).join("");
+    return `<div class="song-vote-row">
+      <div class="song-vote-top">
+        <div class="song-nr">${i+1}</div>
+        <div class="song-name">${s.title}</div>
+      </div>
+      <div class="song-vote-bottom">
+        <div class="pts-chips">${chips}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const canSubmit = kats.every(k=>
+    Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx)).length >= needed
+  );
+
+  return `
+  <div class="progress-wrap">
+    <div class="progress-label"><span>Kategorien ausgefüllt</span><span>${filledKats} / ${kats.length}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${(filledKats/kats.length)*100}%"></div></div>
+  </div>
+  ${kats.length>1?`<div class="kat-tabs">${katTabs}</div>`:""}
+  <div class="card">
+    <div class="kat-header ${kat.gruppe}">
+      <div class="kat-label">${kat.emoji} ${kat.label}</div>
+      <div class="kat-desc">${kat.desc}</div>
+    </div>
+    <div class="pts-legend">${legend}</div>
+    ${songRows}
+  </div>
+  <button class="btn btn-teal" ${canSubmit?"":"disabled"} onclick="${canSubmit?"doSubmitVote()":""}">
+    ${canSubmit?"Abstimmen ✅":"Noch "+(kats.length-filledKats)+" Kategorie(n) ausfüllen…"}
+  </button>
+  <div style="font-size:.73rem;color:var(--gray);text-align:center;margin-top:8px">${allUsers.filter(u=>u.has_voted).length} von ${allUsers.length} haben abgestimmt</div>`;
+}
+
+// ── Results ────────────────────────────────────────────────────────────────
+function renderResults(){
+  const vis=appState.visibility;
+  if(!isHost&&!vis.results) return `<div class="card"><div class="info-locked">🔒 Ergebnisse noch nicht freigegeben.</div></div>`;
+  const {byKat,totals,songs,kats}=calcResults();
+  if(!songs.length) return `<div class="card"><div class="info">Keine Songs vorhanden.</div></div>`;
+  const ranked=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+  const maxPts=ranked[0]?.pts||1;
+  const mode=getMode();
+
+  // ESC mode: only gesamt tab
+  const showKatTabs = mode==="party" && kats.length > 1;
+  let tabs="";
+  if(showKatTabs){
+    tabs=`<div class="tabs">
+      <div class="tab ${resultTab==="gesamt"?"active":""}" onclick="setResultTab('gesamt')">🏆 Gesamt</div>
+      <div class="tab ${resultTab==="ernst"?"active":""}" onclick="setResultTab('ernst')">⭐ Ernst</div>
+      <div class="tab ${resultTab==="lustig"?"active":""}" onclick="setResultTab('lustig')">😂 Lustig</div>
+    </div>`;
+  }
+
+  let content="";
+  const showGesamt = !showKatTabs || resultTab==="gesamt";
+  if(showGesamt){
+    const rows=ranked.map((r,i)=>`<div class="rank-row">
+      <div class="rank-medal">${MEDALS[i]||i+1+"."}</div>
+      <div class="rank-song"><div class="rank-song-name">${r.name}</div><div class="rank-bar" style="width:${(r.pts/maxPts)*100}%"></div></div>
+      <div class="rank-pts">${r.pts}</div>
+    </div>`).join("");
+    const v=allUsers.filter(u=>u.has_voted).length;
+    content=`<div class="card">${rows}<div style="font-size:.72rem;color:var(--gray);text-align:center;margin-top:10px">${v} Stimmzettel</div></div>`;
+  } else {
+    content=kats.filter(k=>k.gruppe===resultTab).map(kat=>{
+      const scores=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+      const top=scores[0]?.pts||1;
+      return `<div class="kat-result">
+        <div class="kat-result-hdr ${kat.gruppe}">
+          <span class="kat-result-name">${kat.emoji} ${kat.label}</span>
+          ${scores[0]?`<span class="kat-result-winner">🏆 ${scores[0].name}</span>`:""}
+        </div>
+        <div class="kat-result-rows">${scores.map((s,i)=>`<div class="kat-result-row">
+          <div class="kat-result-rank">${MEDALS[i]||i+1+"."}</div>
+          <div class="kat-result-song">${s.name}</div>
+          <div class="kat-bar-wrap"><div class="kat-bar" style="width:${(s.pts/top)*100}%"></div></div>
+          <div class="kat-result-pts">${s.pts}</div>
+        </div>`).join("")}</div>
+      </div>`;
+    }).join("");
+  }
+  return tabs+content;
+}
+
+// ── Host Panel ─────────────────────────────────────────────────────────────
+function renderHostPanel(){
+  const vis=appState.visibility;
+  const mode=getMode();
+  const songCount=allUsers.filter(u=>u.song_title).length;
+  const voteCount=allUsers.filter(u=>u.has_voted).length;
+  const hasRO=(appState.running_order||[]).length>0;
+  const count=getSongCount();
+
+  const toggles=[
+    ...(mode==="party"?[{key:"submit",label:"Song-Einreichung",desc:"Gäste können Songs einreichen"}]:[]),
+    {key:"running_order",label:"Running Order",desc:"Gäste sehen die Reihenfolge"},
+    {key:"voting",       label:"Abstimmung",   desc:"Gäste können abstimmen"},
+    {key:"results",      label:"Ergebnisse",   desc:"Gäste sehen das Ergebnis"},
+  ];
+
+  // Mode selector
+  const modeSelector=`<div class="card">
+    <div class="card-title">⚙️ Modus</div>
+    <div class="mode-selector">
+      <div class="mode-opt ${mode==="party"?"selected party":""}" onclick="hostSetMode('party')">
+        <div class="mode-opt-icon">🎉</div>
+        <div class="mode-opt-label">Party</div>
+        <div class="mode-opt-desc">Gäste reichen Songs ein, keine Eigenbewertung, 8 Kategorien</div>
+      </div>
+      <div class="mode-opt ${mode==="esc"?"selected esc":""}" onclick="hostSetMode('esc')">
+        <div class="mode-opt-icon">🌍</div>
+        <div class="mode-opt-label">ESC</div>
+        <div class="mode-opt-desc">Host gibt Songs ein, alle bewerten alle, 1 Kategorie</div>
+      </div>
+    </div>
+    <div class="field"><label>Anzahl Songs / Teilnehmer (min. 5)</label>
+      <input type="number" id="song_count_input" value="${count}" min="5" max="30" style="margin-bottom:0"
+        onchange="hostSetSongCount(this.value)"/>
+    </div>
+    <div class="info" style="margin-top:8px">
+      Punkteschlüssel für <strong>${count}</strong> Songs (${mode==="party"?"ohne eigenen: "+(count-1)+" bewertbar":"alle bewertbar"}):
+      <strong style="color:var(--teal)">${getPointScale(mode==="party").join(" · ")}</strong>
+    </div>
+  </div>`;
+
+  // ESC: host enters songs directly
+  const escSongInput = mode==="esc" ? `<div class="card">
+    <div class="card-title">🎵 Songs eingeben (Host)</div>
+    ${Array.from({length:count},(_,i)=>`<div class="host-song-input">
+      <div class="song-nr">${i+1}</div>
+      <input id="esc_song_${i}" placeholder="Land / Titel / Interpret" maxlength="60" style="margin-bottom:0"
+        value="${(appState.running_order||[])[i]?.title||""}"/>
+    </div>`).join("")}
+    <button class="btn btn-teal" onclick="hostSetEscSongs()">Songs speichern ✅</button>
+  </div>` : "";
+
+  return `
+  <div class="card">
+    <div class="card-title">📊 Status</div>
+    <div class="stat-row"><span>Teilnehmer registriert</span><span class="stat-val">${allUsers.length}</span></div>
+    ${mode==="party"?`<div class="stat-row"><span>Songs eingereicht</span><span class="stat-val">${songCount}</span></div>`:""}
+    <div class="stat-row"><span>Stimmen abgegeben</span><span class="stat-val">${voteCount}</span></div>
+  </div>
+  ${modeSelector}
+  ${escSongInput}
+  <div class="card">
+    <div class="card-title">👁 Sichtbarkeit</div>
+    ${toggles.map(t=>`<div class="toggle-row">
+      <div><div class="toggle-label">${t.label}</div><div class="toggle-desc">${t.desc}</div></div>
+      <label class="toggle"><input type="checkbox" ${vis[t.key]?"checked":""} onchange="hostToggleVisibility('${t.key}')"/><span class="toggle-slider"></span></label>
+    </div>`).join("")}
+  </div>
+  ${mode==="party"?`<div class="card">
+    <div class="card-title">🎲 Running Order</div>
+    <div class="info"><strong>${songCount}</strong> Song(s) eingereicht. Zufällige Reihenfolge per Klick generieren.</div>
+    <button class="btn btn-teal" onclick="hostGenerateRunningOrder()" ${songCount===0?"disabled":""}>${hasRO?"Neu würfeln 🎲":"Running Order generieren 🎲"}</button>
+  </div>`:""}
+  <div class="card">
+    <div class="card-title">🔴 Reset</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button>
+      <button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button>
+    </div>
+  </div>`;
+}
+
+async function hostSetMode(m){
+  await saveState({mode:m});
+  render();
+}
+async function hostSetSongCount(v){
+  const n=Math.max(5,Math.min(30,Number(v)||8));
+  await saveState({song_count:n});
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
