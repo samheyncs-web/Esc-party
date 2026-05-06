@@ -977,6 +977,276 @@ function renderHostPanel(){
   <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
 }
 
+// init called below
+
+// ── REVEAL SYSTEM ─────────────────────────────────────────────────────────
+async function hostStartReveal(){
+  if(!confirm("Ergebnisverkündung starten? Gäste sehen erst was du aufdeckst.")) return;
+  await saveState({reveal_state:{active:true,katIdx:0,songIdx:-1,phase:"kat"}});
+  activeNav="reveal"; render();
+}
+
+async function hostRevealNext(){
+  const {byKat,totals,songs,kats}=calcResults();
+  const rs=appState.reveal_state||{katIdx:0,songIdx:-1,phase:"kat"};
+  if(rs.phase==="kat"){
+    if(rs.songIdx<songs.length-1){
+      await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
+    } else if(rs.katIdx<kats.length-1){
+      await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1}});
+    } else {
+      await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
+    }
+  } else if(rs.phase==="gesamt"){
+    if(rs.songIdx<songs.length-1){
+      await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
+    } else {
+      await saveState({reveal_state:{...rs,phase:"done"}});
+    }
+  }
+  render();
+}
+
+async function hostEndReveal(){
+  await saveState({reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat"}});
+  activeNav="results"; render();
+}
+
+function buildRevealScreen(){
+  const {byKat,totals,songs,kats}=calcResults();
+  const rs=appState.reveal_state||{active:false,katIdx:0,songIdx:-1,phase:"kat"};
+  if(!rs.active) return `<div class="card"><div class="info-locked">⏳ Die Ergebnisse werden gleich verkündet…</div></div>`;
+  const isGesamt=rs.phase==="gesamt"||rs.phase==="done";
+  const isDone=rs.phase==="done";
+  const MEDALS_R=["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12."];
+
+  if(!isGesamt){
+    const kat=kats[rs.katIdx];
+    if(!kat) return "";
+    const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
+    const maxPts=sorted[sorted.length-1]?.pts||1;
+    return `<div style="padding:16px">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${rs.katIdx+1} / ${kats.length}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,5vw,2.2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:5px 0">${kat.emoji} ${kat.label}</div>
+        <div style="font-size:.75rem;color:var(--gray)">${kat.desc}</div>
+      </div>
+      ${rs.songIdx<0?`<div style="text-align:center;padding:30px;color:var(--gray);font-size:.85rem;font-style:italic">Gleich geht's los…</div>`
+        :[...revealed].reverse().map((s,i)=>{
+          const isTop=i===0;
+          const pct=(s.pts/maxPts)*100;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;text-align:center;font-size:${isTop?"1.1rem":".85rem"}">${isTop?"✨":""}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:${isTop?".95rem":".82rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.5rem":"1rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
+          </div>`;
+        }).join("")
+      }
+    </div>`;
+  } else {
+    const sorted=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
+    const maxPts=sorted[sorted.length-1]?.pts||1;
+    return `<div style="padding:16px">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,6vw,2.8rem);color:var(--gold);line-height:1.1;margin:5px 0">🏆 GESAMTRANKING</div>
+      </div>
+      ${rs.songIdx<0?`<div style="text-align:center;padding:30px;color:var(--gray);font-style:italic">Und der Gesamtsieger ist…</div>`
+        :[...revealed].reverse().map((s,i)=>{
+          const isTop=i===0;
+          const rank=sorted.length-revealed.length+(revealed.length-1-i);
+          const medal=isDone?MEDALS_R[sorted.length-1-rank]:(isTop?"✨":"");
+          const pct=(s.pts/maxPts)*100;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;text-align:center;font-size:${isTop?"1.1rem":".85rem"}">${medal}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:${isTop?".95rem":".82rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--gold),var(--pink))":"var(--border)"};width:${pct}%"></div>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.5rem":"1rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
+          </div>`;
+        }).join("")
+      }
+    </div>`;
+  }
+}
+
+// ── PATCHED RENDER ────────────────────────────────────────────────────────
+render = function(){
+  const root=document.getElementById("root"); if(!root) return;
+  if(!currentUser&&!isHost){root.innerHTML=renderLogin();return;}
+  const rs=appState.reveal_state||{active:false};
+  const vis=appState.visibility;
+  const hasRO=(appState.running_order||[]).length>0;
+  const mode=getMode();
+  let navItems=[{id:"info",label:"ℹ️ Info"}];
+  if(!isHost){
+    if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
+    if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
+    if(vis.predictions) navItems.push({id:"pred",label:"🔮 Tipps"});
+    if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
+    if(rs.active) navItems.push({id:"reveal_watch",label:"🎭 Ergebnisse"});
+    else if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
+    if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
+    if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
+    if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
+  } else {
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
+  }
+  if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
+  const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
+  let content="";
+  if(isHost){
+    if(activeNav==="info")    content=renderHelp(true);
+    if(activeNav==="panel")   content=renderHostPanel();
+    if(activeNav==="order")   content=renderRunningOrder(true);
+    if(activeNav==="results") content=renderResults();
+    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
+    if(activeNav==="bingo")   content=renderBingoAdmin();
+    if(activeNav==="pred")    content=renderPredictionsAdmin();
+  } else {
+    if(activeNav==="info")         content=renderHelp(false);
+    if(activeNav==="song")         content=renderSongSubmit();
+    if(activeNav==="order")        content=renderRunningOrder(false);
+    if(activeNav==="pred")         content=renderPredictions();
+    if(activeNav==="vote")         content=renderVoting();
+    if(activeNav==="results")      content=renderResults();
+    if(activeNav==="reveal_watch") content=buildRevealScreen();
+    if(activeNav==="bingo")        content=renderBingo();
+    if(activeNav==="comments")     content=renderComments();
+    if(activeNav==="drinking")     content=renderDrinking();
+  }
+  const modeBadge=mode==="esc"?`<div><span class="mode-badge esc">🌍 ESC-Modus</span></div>`:`<div><span class="mode-badge party">🎉 Party-Modus</span></div>`;
+  root.innerHTML=`<div class="app">
+    <div class="header">
+      <div class="header-title">🎤 ${mode==="esc"?"ESC":"Alternative ESC"} Voting</div>
+      <div class="header-sub">Voting System</div>
+      ${modeBadge}
+      ${currentUser?`<div class="header-nick">${currentUser.nickname} · <a href="#" onclick="logout();return false;" style="color:var(--gray);font-size:.7rem">Abmelden</a></div>`:""}
+      ${isHost?`<div class="header-nick" style="color:var(--gold)">👑 Host · <a href="#" onclick="isHost=false;render();return false;" style="color:var(--gray);font-size:.7rem">Beenden</a></div>`:""}
+    </div>
+    <div class="nav">${navHtml}</div>
+    ${content}
+  </div>`;
+  const ci=document.getElementById("comment-input");
+  if(ci){ci.value=_localComment;ci.oninput=e=>_localComment=e.target.value;ci.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();postComment();}};}
+};
+
+function buildRevealHostPanel(){
+  const rs=appState.reveal_state||{active:false};
+  const {kats,songs}=calcResults();
+  const isDone=rs.phase==="done";
+  const isGesamt=rs.phase==="gesamt"||isDone;
+  let statusText="";
+  if(!rs.active) statusText="Nicht aktiv";
+  else if(isDone) statusText="✅ Fertig!";
+  else if(isGesamt) statusText=`🏆 Gesamt — ${Math.max(0,rs.songIdx+1)} / ${songs.length} aufgedeckt`;
+  else statusText=`Kategorie ${rs.katIdx+1}/${kats.length} — ${Math.max(0,rs.songIdx+1)}/${songs.length} Songs`;
+  return `<div class="card" style="margin-bottom:10px">
+    <div class="card-title">🎭 Steuerung</div>
+    <div style="font-size:.82rem;color:var(--gray);margin-bottom:10px">${statusText}</div>
+    ${!isDone
+      ? `<button class="btn btn-gold" onclick="hostRevealNext()" style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em">▶ NÄCHSTER SCHRITT</button>`
+      : `<div class="alert alert-gold">✅ Alle Ergebnisse verkündet!</div>`
+    }
+    <button class="btn btn-ghost" style="margin-top:6px" onclick="hostEndReveal()">Verkündung beenden</button>
+    <div style="font-size:.72rem;color:var(--gray);margin-top:8px;text-align:center">👁 Screenshare diesen Tab auf den TV — Gäste sehen die Ansicht unten live</div>
+  </div>`;
+}
+
+function buildRevealScreen(){ return buildRevealScreen2(); }
+function buildRevealScreen2(){ return `<div class="card" style="padding:0;overflow:hidden">${buildRevealScreenInner()}</div>`; }
+function buildRevealScreenInner(){ return buildRevealScreen ? "" : ""; }
+
+// replace buildRevealScreen with the real one
+buildRevealScreen = function(){ 
+  const inner = buildRevealInner();
+  return `<div class="card" style="padding:0;overflow:hidden">${inner}</div>`;
+};
+
+function buildRevealInner(){
+  const {byKat,totals,songs,kats}=calcResults();
+  const rs=appState.reveal_state||{active:false,katIdx:0,songIdx:-1,phase:"kat"};
+  if(!rs.active) return `<div style="text-align:center;padding:24px;color:var(--gray)">⏳ Bereit für die Verkündung…</div>`;
+  const isGesamt=rs.phase==="gesamt"||rs.phase==="done";
+  const isDone=rs.phase==="done";
+  const MEDALS_R=["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12."];
+
+  if(!isGesamt){
+    const kat=kats[rs.katIdx]; if(!kat) return "";
+    const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
+    const maxPts=sorted[sorted.length-1]?.pts||1;
+    return `<div style="padding:16px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${rs.katIdx+1} / ${kats.length}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,4vw,2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:4px 0">${kat.emoji} ${kat.label}</div>
+        <div style="font-size:.72rem;color:var(--gray)">${kat.desc}</div>
+      </div>
+      ${rs.songIdx<0
+        ?`<div style="text-align:center;padding:28px;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div>`
+        :[...revealed].reverse().map((s,i)=>{
+          const isTop=i===0;
+          const pct=(s.pts/maxPts)*100;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="width:22px;text-align:center">${isTop?"✨":""}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:${isTop?".92rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".95rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
+          </div>`;
+        }).join("")
+      }
+    </div>`;
+  } else {
+    const sorted=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
+    const maxPts=sorted[sorted.length-1]?.pts||1;
+    return `<div style="padding:16px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);color:var(--gold);line-height:1.1;margin:4px 0">🏆 GESAMTRANKING</div>
+      </div>
+      ${rs.songIdx<0
+        ?`<div style="text-align:center;padding:28px;color:var(--gray);font-style:italic;font-size:.85rem">Und der Gesamtsieger ist…</div>`
+        :[...revealed].reverse().map((s,i)=>{
+          const isTop=i===0;
+          const revIdx=revealed.length-1-i;
+          const rank=sorted.length-revealed.length+revIdx;
+          const medal=isDone?MEDALS_R[sorted.length-1-rank]:(isTop?"✨":"");
+          const pct=(s.pts/maxPts)*100;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="width:22px;text-align:center;font-size:${isTop?"1rem":".82rem"}">${medal}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:${isTop?".92rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--gold),var(--pink))":"var(--border)"};width:${pct}%"></div>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".95rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
+          </div>`;
+        }).join("")
+      }
+    </div>`;
+  }
+}
+
+// Patch renderHostPanel to add reveal button
+const _origHP = renderHostPanel;
+renderHostPanel = function(){
+  const base = _origHP();
+  const rs = appState.reveal_state||{active:false};
+  const voteCount = allUsers.filter(u=>u.has_voted).length;
+  return base + (rs.active
+    ? `<div class="card" style="border-color:rgba(255,201,71,.4)"><div class="card-title" style="color:var(--gold)">🎭 Verkündung läuft</div><button class="btn btn-ghost" onclick="setNav('reveal');render()">Zur Steuerung →</button></div>`
+    : `<div class="card"><div class="card-title">🎭 Ergebnisverkündung</div><div class="info">Startet den dramatischen ESC-Style Reveal — Schritt für Schritt, Kategorie für Kategorie, von letztem zu erstem Platz.</div><button class="btn btn-gold" onclick="hostStartReveal()" ${voteCount===0?"disabled":""} style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em">🎭 VERKÜNDUNG STARTEN</button></div>`
+  );
+};
+
 init();
 </script>
 </body>
