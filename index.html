@@ -588,7 +588,7 @@ function render(){
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
   }
   if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
   const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
@@ -599,6 +599,7 @@ function render(){
     if(activeNav==="panel")   content=renderHostPanel();
     if(activeNav==="order")   content=renderRunningOrder(true);
     if(activeNav==="results") content=renderResults();
+    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
     if(activeNav==="bingo")   content=renderBingoAdmin();
     if(activeNav==="pred")    content=renderPredictionsAdmin();
   } else {
@@ -642,7 +643,7 @@ function renderLogin(){
     <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.0</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.02</span></div>
   </div></div>`;
 }
 async function doLogin(){
@@ -844,11 +845,33 @@ function renderResults(){
     const v=allUsers.filter(u=>u.has_voted).length;
     content=`<div class="card">${rows}<div style="font-size:.7rem;color:var(--gray);text-align:center;margin-top:9px">${v} Stimmzettel</div></div>`;
   } else {
+    // Group totals for ernst/lustig
+    const groupTotals={};
+    songs.forEach((_,i)=>groupTotals[i]=0);
+    kats.filter(k=>k.gruppe===resultTab).forEach(k=>{
+      Object.entries(byKat[k.id]||{}).forEach(([idx,pts])=>{ groupTotals[idx]=(groupTotals[idx]||0)+Number(pts); });
+    });
+    const groupRanked=Object.entries(groupTotals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+    const groupMax=groupRanked[0]?.pts||1;
+    const groupLabel=resultTab==="ernst"?"⭐ Gesamt Ernst (E1–E4)":"😂 Gesamt Lustig (L1–L4)";
+    const groupColor=resultTab==="ernst"?"var(--teal)":"var(--pink)";
+    const groupSummary=`<div class="kat-result" style="margin-top:4px">
+      <div class="kat-result-hdr ${resultTab}" style="border-top:2px solid ${groupColor}">
+        <span class="kat-result-name" style="color:${groupColor}">${groupLabel}</span>
+        ${groupRanked[0]?`<span class="kat-result-winner">🏆 ${groupRanked[0].name}</span>`:""}
+      </div>
+      <div class="kat-result-rows">${groupRanked.map((r,i)=>`<div class="kat-result-row">
+        <div class="kat-result-rank">${MEDALS[i]||i+1+"."}</div>
+        <div class="kat-result-song">${r.name}</div>
+        <div class="kat-bar-wrap"><div class="kat-bar" style="width:${(r.pts/groupMax)*100}%;background:${groupColor}"></div></div>
+        <div class="kat-result-pts" style="color:${groupColor}">${r.pts}</div>
+      </div>`).join("")}</div>
+    </div>`;
     content=kats.filter(k=>k.gruppe===resultTab).map(kat=>{
       const scores=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
       const top=scores[0]?.pts||1;
       return `<div class="kat-result"><div class="kat-result-hdr ${kat.gruppe}"><span class="kat-result-name">${kat.emoji} ${kat.label}</span>${scores[0]?`<span class="kat-result-winner">🏆 ${scores[0].name}</span>`:""}</div><div class="kat-result-rows">${scores.map((s,i)=>`<div class="kat-result-row"><div class="kat-result-rank">${MEDALS[i]||i+1+"."}</div><div class="kat-result-song">${s.name}</div><div class="kat-bar-wrap"><div class="kat-bar" style="width:${(s.pts/top)*100}%"></div></div><div class="kat-result-pts">${s.pts}</div></div>`).join("")}</div></div>`;
-    }).join("");
+    }).join("")+groupSummary;
   }
   return tabs+content;
 }
