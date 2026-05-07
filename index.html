@@ -523,6 +523,31 @@ function setNav(id){ activeNav=id; render(); }
 function setKat(i){ activeKat=i; render(); }
 function setResultTab(t){ resultTab=t; render(); }
 function fmtTime(iso){ const d=new Date(iso); return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0"); }
+// Returns kategorien in the reveal order set by host (or default order)
+function getRevealKats(){
+  const order = appState.reveal_kat_order;
+  if(!order || order.length === 0) return getKategorien();
+  const kats = getKategorien();
+  // Sort by order array, unknown IDs go last
+  return [...kats].sort((a,b)=>{
+    const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+    if(ia===-1 && ib===-1) return 0;
+    if(ia===-1) return 1;
+    if(ib===-1) return -1;
+    return ia - ib;
+  });
+}
+
+async function hostMoveKat(fromIdx, dir){
+  const kats = getRevealKats();
+  const order = kats.map(k=>k.id);
+  const toIdx = fromIdx + dir;
+  if(toIdx < 0 || toIdx >= order.length) return;
+  [order[fromIdx], order[toIdx]] = [order[toIdx], order[fromIdx]];
+  await saveState({reveal_kat_order: order});
+  render();
+}
+
 function calcResults(){
   const songs=appState.running_order||[];
   const kats=getKategorien();
@@ -1003,6 +1028,22 @@ function renderHostPanel(){
     ${toggles.map(t=>`<div class="toggle-row"><div><div class="toggle-label">${t.label}</div><div class="toggle-desc">${t.desc}</div></div><label class="toggle"><input type="checkbox" ${vis[t.key]?"checked":""} onchange="hostToggleVisibility('${t.key}')"/><span class="toggle-slider"></span></label></div>`).join("")}
   </div>
   ${mode==="party"?`<div class="card"><div class="card-title">🎲 Running Order</div><div class="info"><strong>${songCount}</strong> Song(s) eingereicht.</div><button class="btn btn-teal" onclick="hostGenerateRunningOrder()" ${songCount===0?"disabled":""}>${hasRO?"Neu würfeln 🎲":"Running Order generieren 🎲"}</button></div>`:""}
+  <div class="card">
+    <div class="card-title">🎭 Verkündungs-Einstellungen</div>
+    <div class="toggle-row" style="margin-bottom:10px">
+      <div><div class="toggle-label">ESC-Stil Reveal</div><div class="toggle-desc">Alle Punkte außer 12 sofort, dann 12 per Klick</div></div>
+      <label class="toggle"><input type="checkbox" ${appState.reveal_esc_mode?"checked":""} onchange="saveState({reveal_esc_mode:this.checked})"/><span class="toggle-slider"></span></label>
+    </div>
+    <div style="font-size:.8rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Kategorien-Reihenfolge</div>
+    ${getRevealKats().map((k,i,arr)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;font-size:.86rem;font-weight:500">${k.emoji} ${k.label}</div>
+      <div style="display:flex;gap:4px">
+        <button onclick="hostMoveKat(${i},-1)" ${i===0?"disabled":""} style="border:none;background:var(--surface);border:1px solid var(--border);color:${i===0?"var(--border)":"var(--gray)"};border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center">▲</button>
+        <button onclick="hostMoveKat(${i},1)"  ${i===arr.length-1?"disabled":""} style="border:none;background:var(--surface);border:1px solid var(--border);color:${i===arr.length-1?"var(--border)":"var(--gray)"};border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center">▼</button>
+      </div>
+    </div>`).join("")}
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:.78rem" onclick="saveState({reveal_kat_order:[]}).then(()=>render())">Reihenfolge zurücksetzen</button>
+  </div>
   <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
 }
 
@@ -1011,20 +1052,45 @@ function renderHostPanel(){
 // ── REVEAL SYSTEM ─────────────────────────────────────────────────────────
 async function hostStartReveal(){
   if(!confirm("Ergebnisverkündung starten? Gäste sehen erst was du aufdeckst.")) return;
-  await saveState({reveal_state:{active:true,katIdx:0,songIdx:-1,phase:"kat"}});
+  const escMode = appState.reveal_esc_mode || false;
+  await saveState({reveal_state:{active:true,katIdx:0,songIdx:-1,phase:"kat",step:-1,escMode}});
   activeNav="reveal"; render();
 }
 
 async function hostRevealNext(){
-  const {byKat,totals,songs,kats}=calcResults();
+  const {totals,songs}=calcResults();
+  const kats=getRevealKats();
   const rs=appState.reveal_state||{katIdx:0,songIdx:-1,phase:"kat"};
+  // ESC-style: only 2 steps now — step 0 = show all except 12, step 1 = reveal 12
+  // Aggregate: songIdx counts up from -1
   if(rs.phase==="kat"){
-    if(rs.songIdx<songs.length-1){
-      await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
-    } else if(rs.katIdx<kats.length-1){
-      await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1}});
+    const katId=kats[rs.katIdx]?.id;
+    if(rs.escMode){
+      // ESC mode for this kat
+      if(rs.step===undefined||rs.step===-1){
+        // Show all except 12
+        await saveState({reveal_state:{...rs,step:0}});
+      } else if(rs.step===0){
+        // Reveal 12
+        await saveState({reveal_state:{...rs,step:1}});
+      } else {
+        // Next kat
+        if(rs.katIdx<kats.length-1){
+          const nextKatId=kats[rs.katIdx+1]?.id;
+          await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1,step:-1,escMode:rs.escMode}});
+        } else {
+          await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
+        }
+      }
     } else {
-      await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
+      // Aggregate mode
+      if(rs.songIdx<songs.length-1){
+        await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
+      } else if(rs.katIdx<kats.length-1){
+        await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1}});
+      } else {
+        await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
+      }
     }
   } else if(rs.phase==="gesamt"){
     if(rs.songIdx<songs.length-1){
@@ -1050,8 +1116,49 @@ function buildRevealScreen(){
   const MEDALS_R=["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12."];
 
   if(!isGesamt){
-    const kat=kats[rs.katIdx];
+    const revKats=getRevealKats();
+    const kat=revKats[rs.katIdx];
     if(!kat) return "";
+
+    // ESC-style: show all-except-12 first, then 12 per click
+    if(rs.escMode){
+      const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+      const max12=sorted[0]?.pts||12;
+      const allExcept12=sorted.filter(s=>s.pts!==max12).sort((a,b)=>b.pts-a.pts);
+      const the12=sorted.find(s=>s.pts===max12);
+      const maxPts2=sorted[0]?.pts||1;
+      const step=rs.step??-1;
+      return '<div style="padding:16px">'
+        +'<div style="text-align:center;margin-bottom:16px">'
+        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE '+(rs.katIdx+1)+' / '+revKats.length+'</div>'
+        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:clamp(1.3rem,4vw,2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:4px 0">'+kat.emoji+' '+kat.label+'</div>'
+        +'<div style="font-size:.72rem;color:var(--gray)">'+kat.desc+'</div>'
+        +'</div>'
+        +(step===-1
+          ? '<div style="text-align:center;padding:28px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht\'s los…</div>'
+          : allExcept12.map((sv,i)=>{
+              const pct=(sv.pts/maxPts2)*100;
+              return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+                +'<div style="width:22px;text-align:center;font-size:.8rem;color:var(--gray)">'+sv.pts+'</div>'
+                +'<div style="flex:1;min-width:0"><div style="font-size:.82rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sv.name+'</div>'
+                +'<div style="height:3px;border-radius:2px;margin-top:3px;background:var(--border);width:'+pct+'%"></div></div>'
+                +'</div>';
+            }).join("")
+            +(step>=1 && the12
+              ? '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-top:4px;background:rgba(255,201,71,.06);border-radius:10px;padding:10px 8px">'
+                +'<div style="width:22px;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:var(--gold)">12</div>'
+                +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.95rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+the12.name+'</div>'
+                +'<div style="height:3px;border-radius:2px;margin-top:3px;background:linear-gradient(90deg,var(--gold),var(--pink));width:100%"></div></div>'
+                +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.8rem;color:var(--gold)">✨</div>'
+                +'</div>'
+              : step===0
+              ? '<div style="text-align:center;padding:14px 0;color:var(--gray);font-style:italic;font-size:.85rem">und die 12 Punkte gehen an… 🥁</div>'
+              : ""
+            )
+        )
+        +'</div>';
+    }
+
     const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
     const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
     const maxPts=sorted[sorted.length-1]?.pts||1;
