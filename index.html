@@ -193,9 +193,9 @@ textarea{resize:none;min-height:60px}
 <body>
 <div id="root"><div class="spinner">⚙️ Verbinde…</div></div>
 <script>
-const SUPABASE_URL      = "https://ysbkkrvkhoukbvsozili.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzYmtrcnZraG91a2J2c296aWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDk2NTMsImV4cCI6MjA5MzU4NTY1M30.p5N8dZU1FqXcuce90FQGsfpUiw61c85D6SfBZ-h0Rx0";
-const HOST_PASSWORD     = "eschost2025";
+const SUPABASE_URL      = "https://exielmctdbfwpyyusdhq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4aWVsbWN0ZGJmd3B5eXVzZGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDI0MzgsImV4cCI6MjA5MzcxODQzOH0.xvExZzS9EZAcsRa5HZkldcMvdDGlk0BNWgM7dfNmuSw";
+const HOST_PASSWORD     = "esctest2025";
 
 // ── Kategorien ────────────────────────────────────────────────────────────
 const KATEGORIEN = [
@@ -642,7 +642,7 @@ function renderLogin(){
     <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
-    <div style="text-align:center;margin-top:10px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.0e</span></div>
   </div></div>`;
 }
 async function doLogin(){
