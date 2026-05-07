@@ -200,12 +200,12 @@ const HOST_PASSWORD     = "eschost2025";
 // ── Kategorien ────────────────────────────────────────────────────────────
 const KATEGORIEN = [
   {id:"E1",emoji:"⭐",label:"Bestes Gesamtpaket",        desc:"Der Song, der trotz allem irgendwie hängen bleibt",gruppe:"ernst"},
-  {id:"E2",emoji:"⭐",label:"Stimmgewalt oder Skill",     desc:"Eigentlich kann der/die echt was",gruppe:"ernst"},
-  {id:"E3",emoji:"⭐",label:"Beste visuelle Inszenierung",desc:"Das professionellste oder künstlerischste Video",gruppe:"ernst"},
-  {id:"E4",emoji:"⭐",label:"Ohrwurm-Garantie",           desc:"Welcher Song verfolgt euch die nächsten drei Tage?",gruppe:"ernst"},
   {id:"L1",emoji:"😂",label:"Der WTF?!-Award",           desc:"Der Moment, in dem alle fassungslos starren",gruppe:"lustig"},
+  {id:"E2",emoji:"⭐",label:"Stimmgewalt oder Skill",     desc:"Eigentlich kann der/die echt was",gruppe:"ernst"},
   {id:"L2",emoji:"😂",label:"Bestes Kostümverbrechen",    desc:"Fragwürdigste Kleidung oder Maskerade",gruppe:"lustig"},
+  {id:"E3",emoji:"⭐",label:"Beste visuelle Inszenierung",desc:"Das professionellste oder künstlerischste Video",gruppe:"ernst"},
   {id:"L3",emoji:"😂",label:"Textliche Tiefe (Ironisch)", desc:"Zeilen die so absurd sind, dass sie wehtun",gruppe:"lustig"},
+  {id:"E4",emoji:"⭐",label:"Ohrwurm-Garantie",           desc:"Welcher Song verfolgt euch die nächsten drei Tage?",gruppe:"ernst"},
   {id:"L4",emoji:"😂",label:"Größter Fremdscham-Faktor",  desc:"Man will weggucken, aber kann nicht",gruppe:"lustig"},
 ];
 const KATEGORIEN_ESC = [
@@ -1031,8 +1031,8 @@ function renderHostPanel(){
   <div class="card">
     <div class="card-title">🎭 Verkündungs-Einstellungen</div>
     <div class="toggle-row" style="margin-bottom:10px">
-      <div><div class="toggle-label">ESC-Stil Reveal</div><div class="toggle-desc">Alle Punkte außer 12 sofort, dann 12 per Klick</div></div>
-      <label class="toggle"><input type="checkbox" ${appState.reveal_esc_mode?"checked":""} onchange="saveState({reveal_esc_mode:this.checked})"/><span class="toggle-slider"></span></label>
+      <div><div class="toggle-label">ESC-Stil Reveal</div><div class="toggle-desc">Teilnehmer einzeln, Punkte aufsteigend, Top-Punkt per Klick, dann Zwischenstand</div></div>
+      <button onclick="saveState({reveal_esc_mode:!appState.reveal_esc_mode}).then(()=>render())" style="border:none;border-radius:20px;padding:5px 14px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s;background:${appState.reveal_esc_mode?'var(--teal)':'var(--border)'};color:${appState.reveal_esc_mode?'#000':'var(--gray)'}">${appState.reveal_esc_mode?'AN':'AUS'}</button>
     </div>
     <div style="font-size:.8rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Kategorien-Reihenfolge</div>
     ${getRevealKats().map((k,i,arr)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
@@ -1047,331 +1047,344 @@ function renderHostPanel(){
   <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
 }
 
+
 // init called below
 
-// ── REVEAL SYSTEM ─────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════
+// REVEAL SYSTEM v2 — ESC-Stil + Finale Reveals
+// No DB schema changes — reveal_state JSONB handles all new fields
+// ════════════════════════════════════════════════════════════════════
+
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+
+function calcCatTotals(katId){
+  const songs=appState.running_order||[];
+  const t={};
+  songs.forEach((_,i)=>t[i]=0);
+  allUsers.filter(u=>u.ballot).forEach(u=>{
+    Object.entries(u.ballot[katId]||{}).forEach(([si,pts])=>{ t[si]=(t[si]||0)+Number(pts); });
+  });
+  return t;
+}
+function calcGroupTotals(gruppe){
+  const songs=appState.running_order||[];
+  const t={};
+  songs.forEach((_,i)=>t[i]=0);
+  KATEGORIEN.filter(k=>k.gruppe===gruppe).forEach(k=>{
+    Object.entries(calcCatTotals(k.id)).forEach(([si,pts])=>{ t[si]=(t[si]||0)+pts; });
+  });
+  return t;
+}
+function topSongIdx(totals){ return Object.entries(totals).sort((a,b)=>b[1]-a[1])[0]; }
+
 async function hostStartReveal(){
   if(!confirm("Ergebnisverkündung starten? Gäste sehen erst was du aufdeckst.")) return;
-  const escMode = appState.reveal_esc_mode || false;
-  await saveState({reveal_state:{active:true,katIdx:0,songIdx:-1,phase:"kat",step:-1,escMode}});
+  const escMode = appState.reveal_esc_mode||false;
+  const kats=getRevealKats();
+  const voterOrder=shuffle(allUsers.map(u=>u.id));
+  await saveState({reveal_state:{
+    active:true, phase:"kat",
+    katIdx:0, songIdx:-1,
+    escMode,
+    voterOrder, voterIdx:-1, step:-1,
+    finaleStep:0,
+  }});
   activeNav="reveal"; render();
 }
 
 async function hostRevealNext(){
-  const {totals,songs}=calcResults();
+  const rs=appState.reveal_state||{};
   const kats=getRevealKats();
-  const rs=appState.reveal_state||{katIdx:0,songIdx:-1,phase:"kat"};
-  // ESC-style: only 2 steps now — step 0 = show all except 12, step 1 = reveal 12
-  // Aggregate: songIdx counts up from -1
-  if(rs.phase==="kat"){
-    const katId=kats[rs.katIdx]?.id;
-    if(rs.escMode){
-      // ESC mode for this kat
-      if(rs.step===undefined||rs.step===-1){
-        // Show all except 12
-        await saveState({reveal_state:{...rs,step:0}});
-      } else if(rs.step===0){
-        // Reveal 12
-        await saveState({reveal_state:{...rs,step:1}});
-      } else {
-        // Next kat
-        if(rs.katIdx<kats.length-1){
-          const nextKatId=kats[rs.katIdx+1]?.id;
-          await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1,step:-1,escMode:rs.escMode}});
-        } else {
-          await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
-        }
-      }
+  const songs=appState.running_order||[];
+
+  if(rs.phase==="finale"){
+    if(rs.finaleStep<5) await saveState({reveal_state:{...rs,finaleStep:rs.finaleStep+1}});
+    else await saveState({reveal_state:{...rs,phase:"done"}});
+    render(); return;
+  }
+  if(rs.phase==="done") return;
+
+  if(rs.escMode){
+    if(rs.voterIdx===-1){
+      // kat header → first voter
+      await saveState({reveal_state:{...rs,voterIdx:0,step:0}});
+    } else if(rs.step===0){
+      await saveState({reveal_state:{...rs,step:1}});
+    } else if(rs.step===1){
+      await saveState({reveal_state:{...rs,step:2}});
+    } else if(rs.step===2){
+      await saveState({reveal_state:{...rs,step:3}});
     } else {
-      // Aggregate mode
-      if(rs.songIdx<songs.length-1){
-        await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
-      } else if(rs.katIdx<kats.length-1){
-        await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1}});
+      // next voter or next kat
+      const nextVI=rs.voterIdx+1;
+      if(nextVI<(rs.voterOrder||[]).length){
+        await saveState({reveal_state:{...rs,voterIdx:nextVI,step:0}});
       } else {
-        await saveState({reveal_state:{...rs,phase:"gesamt",songIdx:-1}});
+        await advanceRevealKat(rs,kats,songs);
       }
     }
-  } else if(rs.phase==="gesamt"){
-    if(rs.songIdx<songs.length-1){
+  } else {
+    // aggregate
+    const catTotals=calcCatTotals(kats[rs.katIdx]?.id);
+    const sorted=Object.entries(catTotals).sort((a,b)=>a[1]-b[1]);
+    if(rs.songIdx<sorted.length-1){
       await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
     } else {
-      await saveState({reveal_state:{...rs,phase:"done"}});
+      await advanceRevealKat(rs,kats,songs);
     }
   }
   render();
 }
 
+async function advanceRevealKat(rs,kats,songs){
+  if(rs.katIdx<kats.length-1){
+    const newVO=shuffle(allUsers.map(u=>u.id));
+    await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1,voterOrder:newVO,voterIdx:-1,step:-1}});
+  } else {
+    await saveState({reveal_state:{...rs,phase:"finale",finaleStep:0}});
+  }
+}
+
 async function hostEndReveal(){
-  await saveState({reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat"}});
+  await saveState({reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0}});
   activeNav="results"; render();
 }
 
-function buildRevealScreen(){
-  const {byKat,totals,songs,kats}=calcResults();
-  const rs=appState.reveal_state||{active:false,katIdx:0,songIdx:-1,phase:"kat"};
-  if(!rs.active) return `<div class="card"><div class="info-locked">⏳ Die Ergebnisse werden gleich verkündet…</div></div>`;
-  const isGesamt=rs.phase==="gesamt"||rs.phase==="done";
-  const isDone=rs.phase==="done";
-  const MEDALS_R=["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12."];
-
-  if(!isGesamt){
-    const revKats=getRevealKats();
-    const kat=revKats[rs.katIdx];
-    if(!kat) return "";
-
-    // ESC-style: show all-except-12 first, then 12 per click
-    if(rs.escMode){
-      const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
-      const max12=sorted[0]?.pts||12;
-      const allExcept12=sorted.filter(s=>s.pts!==max12).sort((a,b)=>b.pts-a.pts);
-      const the12=sorted.find(s=>s.pts===max12);
-      const maxPts2=sorted[0]?.pts||1;
-      const step=rs.step??-1;
-      return '<div style="padding:16px">'
-        +'<div style="text-align:center;margin-bottom:16px">'
-        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE '+(rs.katIdx+1)+' / '+revKats.length+'</div>'
-        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:clamp(1.3rem,4vw,2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:4px 0">'+kat.emoji+' '+kat.label+'</div>'
-        +'<div style="font-size:.72rem;color:var(--gray)">'+kat.desc+'</div>'
-        +'</div>'
-        +(step===-1
-          ? '<div style="text-align:center;padding:28px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht\'s los…</div>'
-          : allExcept12.map((sv,i)=>{
-              const pct=(sv.pts/maxPts2)*100;
-              return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
-                +'<div style="width:22px;text-align:center;font-size:.8rem;color:var(--gray)">'+sv.pts+'</div>'
-                +'<div style="flex:1;min-width:0"><div style="font-size:.82rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sv.name+'</div>'
-                +'<div style="height:3px;border-radius:2px;margin-top:3px;background:var(--border);width:'+pct+'%"></div></div>'
-                +'</div>';
-            }).join("")
-            +(step>=1 && the12
-              ? '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-top:4px;background:rgba(255,201,71,.06);border-radius:10px;padding:10px 8px">'
-                +'<div style="width:22px;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:var(--gold)">12</div>'
-                +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.95rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+the12.name+'</div>'
-                +'<div style="height:3px;border-radius:2px;margin-top:3px;background:linear-gradient(90deg,var(--gold),var(--pink));width:100%"></div></div>'
-                +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.8rem;color:var(--gold)">✨</div>'
-                +'</div>'
-              : step===0
-              ? '<div style="text-align:center;padding:14px 0;color:var(--gray);font-style:italic;font-size:.85rem">und die 12 Punkte gehen an… 🥁</div>'
-              : ""
-            )
-        )
-        +'</div>';
-    }
-
-    const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
-    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
-    const maxPts=sorted[sorted.length-1]?.pts||1;
-    return `<div style="padding:16px">
-      <div style="text-align:center;margin-bottom:18px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${rs.katIdx+1} / ${kats.length}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,5vw,2.2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:5px 0">${kat.emoji} ${kat.label}</div>
-        <div style="font-size:.75rem;color:var(--gray)">${kat.desc}</div>
-      </div>
-      ${rs.songIdx<0?`<div style="text-align:center;padding:30px;color:var(--gray);font-size:.85rem;font-style:italic">Gleich geht's los…</div>`
-        :[...revealed].reverse().map((s,i)=>{
-          const isTop=i===0;
-          const pct=(s.pts/maxPts)*100;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
-            <div style="width:24px;text-align:center;font-size:${isTop?"1.1rem":".85rem"}">${isTop?"✨":""}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:${isTop?".95rem":".82rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
-            </div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.5rem":"1rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
-          </div>`;
-        }).join("")
-      }
-    </div>`;
-  } else {
-    const sorted=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
-    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
-    const maxPts=sorted[sorted.length-1]?.pts||1;
-    return `<div style="padding:16px">
-      <div style="text-align:center;margin-bottom:18px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,6vw,2.8rem);color:var(--gold);line-height:1.1;margin:5px 0">🏆 GESAMTRANKING</div>
-      </div>
-      ${rs.songIdx<0?`<div style="text-align:center;padding:30px;color:var(--gray);font-style:italic">Und der Gesamtsieger ist…</div>`
-        :[...revealed].reverse().map((s,i)=>{
-          const isTop=i===0;
-          const rank=sorted.length-revealed.length+(revealed.length-1-i);
-          const medal=isDone?MEDALS_R[sorted.length-1-rank]:(isTop?"✨":"");
-          const pct=(s.pts/maxPts)*100;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
-            <div style="width:24px;text-align:center;font-size:${isTop?"1.1rem":".85rem"}">${medal}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:${isTop?".95rem":".82rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--gold),var(--pink))":"var(--border)"};width:${pct}%"></div>
-            </div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.5rem":"1rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
-          </div>`;
-        }).join("")
-      }
-    </div>`;
-  }
-}
-
-// ── PATCHED RENDER ────────────────────────────────────────────────────────
-render = function(){
-  const root=document.getElementById("root"); if(!root) return;
-  if(!currentUser&&!isHost){root.innerHTML=renderLogin();return;}
-  const rs=appState.reveal_state||{active:false};
-  const vis=appState.visibility;
-  const hasRO=(appState.running_order||[]).length>0;
-  const mode=getMode();
-  let navItems=[{id:"info",label:"ℹ️ Info"}];
-  if(!isHost){
-    if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
-    if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
-    if(vis.predictions) navItems.push({id:"pred",label:"🔮 Tipps"});
-    if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
-    if(rs.active) navItems.push({id:"reveal_watch",label:"🎭 Ergebnisse"});
-    else if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
-    if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
-    if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
-    if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
-  } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
-  }
-  if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
-  const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
-  let content="";
-  if(isHost){
-    if(activeNav==="info")    content=renderHelp(true);
-    if(activeNav==="panel")   content=renderHostPanel();
-    if(activeNav==="order")   content=renderRunningOrder(true);
-    if(activeNav==="results") content=renderResults();
-    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
-    if(activeNav==="bingo")   content=renderBingoAdmin();
-    if(activeNav==="pred")    content=renderPredictionsAdmin();
-  } else {
-    if(activeNav==="info")         content=renderHelp(false);
-    if(activeNav==="song")         content=renderSongSubmit();
-    if(activeNav==="order")        content=renderRunningOrder(false);
-    if(activeNav==="pred")         content=renderPredictions();
-    if(activeNav==="vote")         content=renderVoting();
-    if(activeNav==="results")      content=renderResults();
-    if(activeNav==="reveal_watch") content=buildRevealScreen();
-    if(activeNav==="bingo")        content=renderBingo();
-    if(activeNav==="comments")     content=renderComments();
-    if(activeNav==="drinking")     content=renderDrinking();
-  }
-  const modeBadge=mode==="esc"?`<div><span class="mode-badge esc">🌍 ESC-Modus</span></div>`:`<div><span class="mode-badge party">🎉 Party-Modus</span></div>`;
-  root.innerHTML=`<div class="app">
-    <div class="header">
-      <div class="header-title">🎤 ${mode==="esc"?"ESC":"Alternative ESC"} Voting</div>
-      <div class="header-sub">Voting System</div>
-      ${modeBadge}
-      ${currentUser?`<div class="header-nick">${currentUser.nickname} · <a href="#" onclick="logout();return false;" style="color:var(--gray);font-size:.7rem">Abmelden</a></div>`:""}
-      ${isHost?`<div class="header-nick" style="color:var(--gold)">👑 Host · <a href="#" onclick="isHost=false;render();return false;" style="color:var(--gray);font-size:.7rem">Beenden</a></div>`:""}
-    </div>
-    <div class="nav">${navHtml}</div>
-    ${content}
-  </div>`;
-  const ci=document.getElementById("comment-input");
-  if(ci){ci.value=_localComment;ci.oninput=e=>_localComment=e.target.value;ci.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();postComment();}};}
-};
-
+// ── Reveal control panel (host) ───────────────────────────────────────────
 function buildRevealHostPanel(){
   const rs=appState.reveal_state||{active:false};
-  const {kats,songs}=calcResults();
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
   const isDone=rs.phase==="done";
-  const isGesamt=rs.phase==="gesamt"||isDone;
-  let statusText="";
-  if(!rs.active) statusText="Nicht aktiv";
-  else if(isDone) statusText="✅ Fertig!";
-  else if(isGesamt) statusText=`🏆 Gesamt — ${Math.max(0,rs.songIdx+1)} / ${songs.length} aufgedeckt`;
-  else statusText=`Kategorie ${rs.katIdx+1}/${kats.length} — ${Math.max(0,rs.songIdx+1)}/${songs.length} Songs`;
-  return `<div class="card" style="margin-bottom:10px">
-    <div class="card-title">🎭 Steuerung</div>
-    <div style="font-size:.82rem;color:var(--gray);margin-bottom:10px">${statusText}</div>
+  const isFinale=rs.phase==="finale";
+
+  let statusText="Nicht aktiv";
+  let nextLabel="▶ NÄCHSTER SCHRITT";
+
+  if(rs.active&&!isDone){
+    if(isFinale){
+      const fl=rs.finaleStep||0;
+      const flLabels=["Lustig-Sieger bereit","Lustig-Sieger sichtbar","Ernst-Sieger bereit","Ernst-Sieger sichtbar","Gesamtsieger bereit","Gesamtsieger sichtbar"];
+      statusText="🏆 Finale — "+flLabels[fl];
+      const nxt=["▶ LUSTIG-SIEGER ANZEIGEN","▶ AUFDECKEN ✨","▶ ERNST-SIEGER ANZEIGEN","▶ AUFDECKEN ✨","▶ GESAMTSIEGER ANZEIGEN","▶ AUFDECKEN 🏆"];
+      nextLabel=nxt[fl]||"▶ FERTIG";
+    } else if(rs.escMode){
+      const kat=kats[rs.katIdx];
+      const voter=allUsers.find(u=>u.id===(rs.voterOrder||[])[rs.voterIdx]);
+      if(rs.voterIdx===-1){
+        statusText=`${kat?.emoji} ${kat?.label} — Kategorie-Header`;
+        nextLabel="▶ ERSTEN ABSTIMMENDEN EINBLENDEN";
+      } else {
+        const stepLabels=["Teilnehmer eingeblendet","Punkte 1–N sichtbar","Top-Punkt aufgedeckt","Zwischenstand"];
+        statusText=`${kat?.emoji} ${kat?.label} · ${voter?.nickname||"?"} (${rs.voterIdx+1}/${(rs.voterOrder||[]).length}) · ${stepLabels[rs.step]||""}`;
+        const nxtLabels=["▶ PUNKTE EINBLENDEN","▶ TOP-PUNKT AUFDECKEN 🥁","▶ ZWISCHENSTAND ZEIGEN","▶ NÄCHSTER ABSTIMMENDER"];
+        const isLastVoter=rs.voterIdx===(rs.voterOrder||[]).length-1;
+        nextLabel=(rs.step===3&&isLastVoter)?"▶ NÄCHSTE KATEGORIE":(nxtLabels[rs.step]||"▶ WEITER");
+      }
+    } else {
+      const kat=kats[rs.katIdx];
+      const catTotals=calcCatTotals(kat?.id||"E1");
+      const sorted=Object.entries(catTotals).sort((a,b)=>a[1]-b[1]);
+      const rem=sorted.length-(rs.songIdx+1);
+      statusText=`${kat?.emoji} ${kat?.label} · ${rs.songIdx+1}/${sorted.length} Songs`;
+      nextLabel=rs.songIdx<sorted.length-1?`▶ NÄCHSTEN SONG AUFDECKEN (${rem} übrig)`:"▶ NÄCHSTE KATEGORIE";
+    }
+  } else if(isDone){
+    statusText="✅ Alle Ergebnisse verkündet!";
+  }
+
+  return `<div class="card" style="margin-bottom:10px;border-color:rgba(255,201,71,.4)">
+    <div class="card-title" style="color:var(--gold)">🎭 Steuerung</div>
+    <div style="font-size:.78rem;color:var(--gray);margin-bottom:10px;line-height:1.5">${statusText}</div>
     ${!isDone
-      ? `<button class="btn btn-gold" onclick="hostRevealNext()" style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em">▶ NÄCHSTER SCHRITT</button>`
-      : `<div class="alert alert-gold">✅ Alle Ergebnisse verkündet!</div>`
+      ?`<button class="btn btn-gold" onclick="hostRevealNext()" style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:.08em">${nextLabel}</button>`
+      :`<div class="alert alert-gold">✅ Alle Ergebnisse verkündet!</div>`
     }
     <button class="btn btn-ghost" style="margin-top:6px" onclick="hostEndReveal()">Verkündung beenden</button>
-    <div style="font-size:.72rem;color:var(--gray);margin-top:8px;text-align:center">👁 Screenshare diesen Tab auf den TV — Gäste sehen die Ansicht unten live</div>
+    <div style="font-size:.7rem;color:var(--gray);margin-top:8px;text-align:center">👁 Screenshare diesen Tab auf den TV — Gäste sehen die Ansicht unten live</div>
   </div>`;
 }
 
-function buildRevealScreen(){ return buildRevealScreen2(); }
-function buildRevealScreen2(){ return `<div class="card" style="padding:0;overflow:hidden">${buildRevealScreenInner()}</div>`; }
-function buildRevealScreenInner(){ return buildRevealScreen ? "" : ""; }
-
-// replace buildRevealScreen with the real one
-buildRevealScreen = function(){ 
-  const inner = buildRevealInner();
-  return `<div class="card" style="padding:0;overflow:hidden">${inner}</div>`;
-};
-
-function buildRevealInner(){
-  const {byKat,totals,songs,kats}=calcResults();
-  const rs=appState.reveal_state||{active:false,katIdx:0,songIdx:-1,phase:"kat"};
-  if(!rs.active) return `<div style="text-align:center;padding:24px;color:var(--gray)">⏳ Bereit für die Verkündung…</div>`;
-  const isGesamt=rs.phase==="gesamt"||rs.phase==="done";
-  const isDone=rs.phase==="done";
-  const MEDALS_R=["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12."];
-
-  if(!isGesamt){
-    const kat=kats[rs.katIdx]; if(!kat) return "";
-    const sorted=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
-    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
-    const maxPts=sorted[sorted.length-1]?.pts||1;
-    return `<div style="padding:16px">
-      <div style="text-align:center;margin-bottom:16px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${rs.katIdx+1} / ${kats.length}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,4vw,2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:4px 0">${kat.emoji} ${kat.label}</div>
-        <div style="font-size:.72rem;color:var(--gray)">${kat.desc}</div>
-      </div>
-      ${rs.songIdx<0
-        ?`<div style="text-align:center;padding:28px;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div>`
-        :[...revealed].reverse().map((s,i)=>{
-          const isTop=i===0;
-          const pct=(s.pts/maxPts)*100;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="width:22px;text-align:center">${isTop?"✨":""}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:${isTop?".92rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
-            </div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".95rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
-          </div>`;
-        }).join("")
-      }
-    </div>`;
-  } else {
-    const sorted=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
-    const revealed=sorted.slice(0,Math.max(0,rs.songIdx+1));
-    const maxPts=sorted[sorted.length-1]?.pts||1;
-    return `<div style="padding:16px">
-      <div style="text-align:center;margin-bottom:16px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);color:var(--gold);line-height:1.1;margin:4px 0">🏆 GESAMTRANKING</div>
-      </div>
-      ${rs.songIdx<0
-        ?`<div style="text-align:center;padding:28px;color:var(--gray);font-style:italic;font-size:.85rem">Und der Gesamtsieger ist…</div>`
-        :[...revealed].reverse().map((s,i)=>{
-          const isTop=i===0;
-          const revIdx=revealed.length-1-i;
-          const rank=sorted.length-revealed.length+revIdx;
-          const medal=isDone?MEDALS_R[sorted.length-1-rank]:(isTop?"✨":"");
-          const pct=(s.pts/maxPts)*100;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="width:22px;text-align:center;font-size:${isTop?"1rem":".82rem"}">${medal}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:${isTop?".92rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-              <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--gold),var(--pink))":"var(--border)"};width:${pct}%"></div>
-            </div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".95rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${s.pts}</div>
-          </div>`;
-        }).join("")
-      }
-    </div>`;
-  }
+// ── Main reveal screen ────────────────────────────────────────────────────
+function buildRevealScreen(){
+  const rs=appState.reveal_state||{active:false};
+  if(!rs.active) return `<div class="card"><div style="text-align:center;padding:24px;color:var(--gray)">⏳ Bereit für die Verkündung…</div></div>`;
+  if(rs.phase==="done") return `<div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem">🎉</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--gold);margin-top:8px">SHOW'S OVER!</div></div>`;
+  if(rs.phase==="finale") return buildFinaleScreen(rs);
+  return rs.escMode ? buildEscScreen(rs) : buildAggregateScreen(rs);
 }
 
-// Patch renderHostPanel to add reveal button
+function buildKatHeader(kat,katIdx,katsLen,mode){
+  return `<div style="text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${katIdx+1} / ${katsLen}${mode?" · "+mode:""}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,5vw,2.2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:5px 0">${kat.emoji} ${kat.label}</div>
+    <div style="font-size:.72rem;color:var(--gray)">${kat.desc}</div>
+  </div>`;
+}
+
+// ── ESC-Stil screen ───────────────────────────────────────────────────────
+function buildEscScreen(rs){
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+  const kat=kats[rs.katIdx]; if(!kat) return "";
+  const katHdr=buildKatHeader(kat,rs.katIdx,kats.length,"ESC-STIL");
+
+  if(rs.voterIdx===-1) return `<div class="card" style="padding:16px">${katHdr}
+    <div style="text-align:center;padding:20px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div>
+  </div>`;
+
+  const voter=allUsers.find(u=>u.id===(rs.voterOrder||[])[rs.voterIdx]);
+  if(!voter) return `<div class="card"><div style="color:var(--gray);padding:16px">?</div></div>`;
+
+  const voterPts=Object.entries(voter.ballot?.[kat.id]||{})
+    .map(([si,pts])=>({si:Number(si),pts:Number(pts),song:songs[Number(si)]?.title||"?"}))
+    .sort((a,b)=>a.pts-b.pts);
+  const topPt=voterPts[voterPts.length-1];
+  const lowPts=voterPts.slice(0,-1);
+  const maxPts=topPt?.pts||1;
+
+  const voterHdr=`<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface);border-radius:10px;margin-bottom:12px">
+    <div style="font-size:1.6rem">🎤</div>
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.05em">${voter.nickname}</div>
+      <div style="font-size:.72rem;color:var(--gray);margin-top:1px">Abstimmender ${rs.voterIdx+1} von ${(rs.voterOrder||[]).length}</div>
+    </div>
+  </div>`;
+
+  if(rs.step===0) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}
+    <div style="text-align:center;padding:14px 0;color:var(--gray);font-style:italic;font-size:.85rem">Die Punkte von ${voter.nickname}…</div>
+  </div>`;
+
+  const lowRows=lowPts.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;width:28px;text-align:center;color:var(--gray)">${p.pts}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.82rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.song}</div>
+      <div style="height:3px;border-radius:2px;margin-top:3px;background:var(--border);width:${(p.pts/maxPts)*100}%"></div>
+    </div>
+  </div>`).join("");
+
+  const topHidden=`<div style="text-align:center;padding:14px;background:rgba(255,201,71,.06);border:1px dashed rgba(255,201,71,.3);border-radius:10px;margin-top:8px;color:var(--gray);font-style:italic;font-size:.85rem">
+    und die <strong style="color:var(--gold)">${topPt?.pts} Punkte</strong> gehen an… 🥁
+  </div>`;
+
+  const topRevealed=`<div style="display:flex;align-items:center;gap:12px;padding:12px 10px;background:rgba(255,201,71,.06);border:1px solid rgba(255,201,71,.3);border-radius:12px;margin-top:8px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);width:42px;text-align:center;line-height:1">${topPt?.pts}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;font-size:.92rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topPt?.song}</div>
+      <div style="height:3px;border-radius:2px;margin-top:4px;background:linear-gradient(90deg,var(--gold),var(--pink));width:100%"></div>
+    </div>
+    <div style="font-size:1.3rem">✨</div>
+  </div>`;
+
+  if(rs.step===1) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}${lowRows}${topHidden}</div>`;
+  if(rs.step===2) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}${lowRows}${topRevealed}</div>`;
+
+  // step 3: zwischenstand
+  const runTotals={};
+  songs.forEach((_,i)=>runTotals[i]=0);
+  for(let vi=0;vi<=rs.voterIdx;vi++){
+    const u=allUsers.find(u=>u.id===(rs.voterOrder||[])[vi]);
+    if(u) Object.entries(u.ballot?.[kat.id]||{}).forEach(([si,pts])=>{ runTotals[si]=(runTotals[si]||0)+Number(pts); });
+  }
+  const ranked=Object.entries(runTotals).map(([si,pts])=>({si:Number(si),pts,song:songs[si]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+  const maxR=ranked[0]?.pts||1;
+  const MEDALS_Z=["🥇","🥈","🥉","4.","5.","6.","7.","8."];
+  const remaining=(rs.voterOrder||[]).length-rs.voterIdx-1;
+  return `<div class="card" style="padding:16px">${katHdr}
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.82rem;letter-spacing:.12em;color:var(--gray);margin-bottom:10px">
+      ZWISCHENSTAND NACH ${rs.voterIdx+1} / ${(rs.voterOrder||[]).length} ABSTIMMENDEN
+      ${remaining>0?`<span style="color:var(--gray);font-size:.7rem;font-family:'DM Sans',sans-serif;font-weight:400"> · noch ${remaining}</span>`:""}
+    </div>
+    ${ranked.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border)">
+      <div style="width:22px;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gray);text-align:center">${MEDALS_Z[i]||i+1+"."}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:${i===0?600:400};color:${i===0?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.song}</div>
+        <div style="height:3px;border-radius:2px;margin-top:3px;background:${i===0?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${(r.pts/maxR)*100}%"></div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:${i===0?"var(--teal)":"var(--gray)"}">${r.pts}</div>
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── Aggregate screen ──────────────────────────────────────────────────────
+function buildAggregateScreen(rs){
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+  const kat=kats[rs.katIdx]; if(!kat) return "";
+  const catTotals=calcCatTotals(kat.id);
+  const sorted=Object.entries(catTotals).map(([si,pts])=>({si:Number(si),pts,song:songs[si]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+  const revealed=sorted.slice(sorted.length-Math.max(0,rs.songIdx+1));
+  const maxPts=sorted[sorted.length-1]?.pts||1;
+  const katHdr=buildKatHeader(kat,rs.katIdx,kats.length,"AGGREGAT");
+  if(rs.songIdx<0) return `<div class="card" style="padding:16px">${katHdr}<div style="text-align:center;padding:20px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div></div>`;
+  return `<div class="card" style="padding:16px">${katHdr}
+    ${revealed.map((r,i)=>{const isTop=i===0,pct=(r.pts/maxPts)*100;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="width:24px;text-align:center">${isTop?"✨":""}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:${isTop?600:400};font-size:${isTop?".9rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.song}</div>
+          <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".9rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${r.pts}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── Finale screen ─────────────────────────────────────────────────────────
+function buildFinaleScreen(rs){
+  const fl=rs.finaleStep||0;
+  const songs=appState.running_order||[];
+  const lustTotals=calcGroupTotals("lustig");
+  const ernstTotals=calcGroupTotals("ernst");
+  const allTotals={};
+  songs.forEach((_,i)=>allTotals[i]=0);
+  KATEGORIEN.forEach(k=>{ Object.entries(calcCatTotals(k.id)).forEach(([si,pts])=>{ allTotals[si]=(allTotals[si]||0)+pts; }); });
+
+  const [lustIdx,lustPts]=topSongIdx(lustTotals);
+  const [ernstIdx,ernstPts]=topSongIdx(ernstTotals);
+  const [allIdx,allPts]=topSongIdx(allTotals);
+
+  function hidden(label){
+    return `<div style="padding:20px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:14px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;color:var(--gray)">${label}</div>
+      <div style="font-size:2rem;margin-top:8px">🥁</div>
+    </div>`;
+  }
+  function winner(trophy,label,songName,pts,sub){
+    return `<div style="padding:20px;text-align:center;background:linear-gradient(135deg,rgba(255,201,71,.12),rgba(255,61,127,.08));border:1px solid rgba(255,201,71,.3);border-radius:14px;margin-bottom:12px">
+      <div style="font-size:2.4rem;margin-bottom:8px">${trophy}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.15em;color:var(--gray);text-transform:uppercase;margin-bottom:4px">${label}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,5vw,1.9rem);color:var(--gold);line-height:1.1">${songName}</div>
+      <div style="font-size:.8rem;color:var(--gray);margin-top:6px">${pts} Punkte${sub?" · "+sub:""}</div>
+    </div>`;
+  }
+
+  let blocks="";
+  // Lustig
+  if(fl>=1) blocks+=winner("😂","Sieger Lustig-Kategorien",songs[lustIdx]?.title||"?",lustPts,"L1–L4");
+  else blocks+=hidden("Sieger der Lustig-Kategorien");
+  // Ernst
+  if(fl>=2){
+    if(fl>=3) blocks+=winner("⭐","Sieger Ernst-Kategorien",songs[ernstIdx]?.title||"?",ernstPts,"E1–E4");
+    else blocks+=hidden("Sieger der Ernst-Kategorien");
+  }
+  // Overall
+  if(fl>=4){
+    if(fl>=5) blocks+=winner("🏆","Gesamtsieger",songs[allIdx]?.title||"?",allPts,"alle Kategorien");
+    else blocks+=hidden("Gesamtsieger");
+  }
+
+  return `<div class="card" style="padding:16px">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,6vw,2.6rem);color:var(--gold);line-height:1.1;margin:4px 0">🏆 DIE GEWINNER</div>
+    </div>
+    ${blocks}
+  </div>`;
+}
+
+// Patch renderHostPanel to show reveal launch button
 const _origHP = renderHostPanel;
 renderHostPanel = function(){
   const base = _origHP();
@@ -1379,7 +1392,7 @@ renderHostPanel = function(){
   const voteCount = allUsers.filter(u=>u.has_voted).length;
   return base + (rs.active
     ? `<div class="card" style="border-color:rgba(255,201,71,.4)"><div class="card-title" style="color:var(--gold)">🎭 Verkündung läuft</div><button class="btn btn-ghost" onclick="setNav('reveal');render()">Zur Steuerung →</button></div>`
-    : `<div class="card"><div class="card-title">🎭 Ergebnisverkündung</div><div class="info">Startet den dramatischen ESC-Style Reveal — Schritt für Schritt, Kategorie für Kategorie, von letztem zu erstem Platz.</div><button class="btn btn-gold" onclick="hostStartReveal()" ${voteCount===0?"disabled":""} style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em">🎭 VERKÜNDUNG STARTEN</button></div>`
+    : `<div class="card"><div class="card-title">🎭 Ergebnisverkündung</div><div class="info">Startet die dramatische Ergebnisverkündung. Modus und Kategorienreihenfolge oben in den Einstellungen konfigurierbar.</div><button class="btn btn-gold" onclick="hostStartReveal()" ${voteCount===0?"disabled":""} style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em">🎭 VERKÜNDUNG STARTEN</button></div>`
   );
 };
 
