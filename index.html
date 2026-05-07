@@ -588,7 +588,7 @@ function render(){
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"},{id:"testdata",label:"🧪 Testdaten"}];
   }
   if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
   const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
@@ -599,8 +599,10 @@ function render(){
     if(activeNav==="panel")   content=renderHostPanel();
     if(activeNav==="order")   content=renderRunningOrder(true);
     if(activeNav==="results") content=renderResults();
+    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
     if(activeNav==="bingo")   content=renderBingoAdmin();
     if(activeNav==="pred")    content=renderPredictionsAdmin();
+    if(activeNav==="testdata") content=renderTestData();
   } else {
     if(activeNav==="info")     content=renderHelp(false);
     if(activeNav==="song")     content=renderSongSubmit();
@@ -1395,6 +1397,131 @@ renderHostPanel = function(){
     : `<div class="card"><div class="card-title">🎭 Ergebnisverkündung</div><div class="info">Startet die dramatische Ergebnisverkündung. Modus und Kategorienreihenfolge oben in den Einstellungen konfigurierbar.</div><button class="btn btn-gold" onclick="hostStartReveal()" ${voteCount===0?"disabled":""} style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em">🎭 VERKÜNDUNG STARTEN</button></div>`
   );
 };
+
+// ════════════════════════════════════════════════════════════════════
+// 🧪 TESTDATEN — nur im Test-Branch
+// ════════════════════════════════════════════════════════════════════
+const TD_SONGS=[
+  {title:"Total Eclipse of the Heart – Bonnie Tyler", youtube_url:"https://youtube.com/watch?v=lcOxhH8N3Bo"},
+  {title:"Africa – Toto",                             youtube_url:"https://youtube.com/watch?v=FTQbiNvZqaY"},
+  {title:"Never Gonna Give You Up – Rick Astley",     youtube_url:"https://youtube.com/watch?v=dQw4w9WgXcQ"},
+  {title:"Barbie Girl – Aqua",                        youtube_url:"https://youtube.com/watch?v=ZyhrYis509A"},
+  {title:"Mambo No. 5 – Lou Bega",                    youtube_url:"https://youtube.com/watch?v=EIEHPaL8PPk"},
+  {title:"Freed from Desire – Gala",                  youtube_url:"https://youtube.com/watch?v=CEMn4JtdMkQ"},
+  {title:"Dragostea Din Tei – O-Zone",                youtube_url:"https://youtube.com/watch?v=YnopHCL1Jk8"},
+  {title:"Cotton Eye Joe – Rednex",                   youtube_url:"https://youtube.com/watch?v=K4RmkMDmDyA"},
+];
+const TD_USERS=[
+  {nickname:"KlausFromMunich", song_idx:1, pref:[1,0,2,3]},
+  {nickname:"SabineRocks",     song_idx:0, pref:[0,2,4,6]},
+  {nickname:"DJ_Axel",         song_idx:7, pref:[7,5,3,1]},
+  {nickname:"IngridPop",       song_idx:3, pref:[3,6,0,5]},
+  {nickname:"MarcoBello",      song_idx:4, pref:[4,2,7,0]},
+  {nickname:"ElenaVibes",      song_idx:5, pref:[5,3,1,6]},
+  {nickname:"TomTranceMaster", song_idx:6, pref:[6,4,2,7]},
+  {nickname:"NinaStardust",    song_idx:2, pref:[2,0,5,3]},
+];
+
+function tdMakeBallot(pref){
+  const PTS=[12,10,8,6,5,4,3,1];
+  const b={};
+  KATEGORIEN.forEach((k,ki)=>{
+    b[k.id]={};
+    const order=[...Array(8).keys()].sort((a,c)=>{
+      const ia=pref.indexOf(a),ic=pref.indexOf(c);
+      if(ia>=0&&ic>=0)return ia-ic;
+      if(ia>=0)return -1;if(ic>=0)return 1;
+      return(a+ki*3)%8-(c+ki*3)%8;
+    });
+    order.forEach((si,rank)=>{b[k.id][si]=PTS[rank];});
+  });
+  return b;
+}
+
+async function tdLoadUsers(){
+  if(!confirm("⚠️ Alle bestehenden Nutzer löschen und 8 Demo-Nutzer anlegen?\n\nDies überschreibt alle vorhandenen Accounts!")) return;
+  showToast("Lade Testnutzer…");
+  // Delete all users first
+  await sb.from("esc_users").delete().neq("id",0);
+  // Insert demo users
+  const rows=TD_USERS.map((u,i)=>({
+    nickname:u.nickname,
+    nickname_lower:u.nickname.toLowerCase(),
+    pin_hash:"1234",
+    song_title:null, youtube_url:null,
+    ballot:null, has_voted:false, predictions:null,
+  }));
+  const {error}=await sb.from("esc_users").insert(rows);
+  if(error){showToast("Fehler: "+error.message);return;}
+  await loadAll();
+  showToast("✅ 8 Testnutzer angelegt (PIN: 1234)");
+  render();
+}
+
+async function tdLoadSongs(){
+  if(!confirm("⚠️ Running Order mit 8 Demo-Songs überschreiben?")) return;
+  showToast("Lade Demo-Songs…");
+  // Assign songs to users by song_idx
+  for(const u of TD_USERS){
+    const song=TD_SONGS[u.song_idx];
+    await sb.from("esc_users")
+      .update({song_title:song.title, youtube_url:song.youtube_url})
+      .ilike("nickname_lower",u.nickname.toLowerCase());
+  }
+  // Set running order in state
+  await saveState({running_order:TD_SONGS});
+  await loadAll();
+  showToast("✅ Running Order mit 8 Songs gesetzt");
+  render();
+}
+
+async function tdLoadVotes(){
+  if(!confirm("⚠️ Alle 8 Nutzer mit Demo-Votes befüllen?\n\nBestehende Votes werden überschrieben!")) return;
+  showToast("Lade Demo-Votes…");
+  for(const u of TD_USERS){
+    const ballot=tdMakeBallot(u.pref);
+    await sb.from("esc_users")
+      .update({ballot:ballot, has_voted:true})
+      .ilike("nickname_lower",u.nickname.toLowerCase());
+  }
+  await loadAll();
+  showToast("✅ Votes für alle 8 Nutzer gesetzt");
+  render();
+}
+
+function renderTestData(){
+  const userCount=allUsers.length;
+  const songCount=allUsers.filter(u=>u.song_title).length;
+  const voteCount=allUsers.filter(u=>u.has_voted).length;
+  const hasRO=(appState.running_order||[]).length>0;
+
+  return`<div class="card" style="border-color:rgba(255,61,127,.3)">
+    <div class="card-title" style="color:var(--pink)">🧪 Testdaten</div>
+    <div class="info">Nur im Test-Branch verfügbar. Jede Aktion erfordert eine Bestätigung und überschreibt bestehende Daten.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 Schritt 1 — Nutzer anlegen</div>
+    <div class="info">Legt 8 Demo-Nutzer an (alle PIN: <strong>1234</strong>). Löscht alle bestehenden Accounts.</div>
+    <div class="stat-row"><span>Aktuelle Nutzer</span><span class="stat-val">${userCount}</span></div>
+    <button class="btn btn-pink" onclick="tdLoadUsers()">👥 8 Testnutzer anlegen</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎵 Schritt 2 — Songs setzen</div>
+    <div class="info">Weist jedem Nutzer einen Demo-Song zu und setzt die Running Order.</div>
+    <div class="stat-row"><span>Songs eingereicht</span><span class="stat-val">${songCount}</span></div>
+    <div class="stat-row"><span>Running Order</span><span class="stat-val">${hasRO?appState.running_order.length+" Songs":"—"}</span></div>
+    <button class="btn btn-teal" onclick="tdLoadSongs()" ${userCount===0?"disabled":""}>🎵 Demo-Songs setzen</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗳 Schritt 3 — Votes befüllen</div>
+    <div class="info">Befüllt alle 8 Nutzer mit vollständigen Demo-Votes. Benötigt Songs aus Schritt 2.</div>
+    <div class="stat-row"><span>Stimmen abgegeben</span><span class="stat-val">${voteCount} / ${userCount}</span></div>
+    <button class="btn btn-gold" onclick="tdLoadVotes()" ${songCount===0?"disabled":""}>🗳 Demo-Votes befüllen</button>
+  </div>`;
+}
 
 init();
 </script>
