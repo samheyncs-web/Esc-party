@@ -926,6 +926,34 @@ function renderDrinking(){
   </div>`;
 }
 
+// ── USER LIST ─────────────────────────────────────────────────────────────
+async function hostDeleteUser(userId, nickname){
+  if(!confirm('Nutzer "'+nickname+'" wirklich löschen? Damit werden auch sein Song und seine Stimme entfernt.')) return;
+  await sb.from("esc_users").delete().eq("id", userId);
+  await loadAll();
+  showToast(nickname+" gelöscht.");
+  render();
+}
+
+function renderUserList(){
+  if(!allUsers.length) return '<div class="card"><div class="card-title">👥 Teilnehmer</div><div class="info">Noch niemand registriert.</div></div>';
+  const rows = allUsers.map(u => {
+    const hasSong  = !!u.song_title;
+    const hasVoted = !!u.has_voted;
+    const nick = u.nickname.replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.nickname+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">'
+      +'<span style="font-size:.68rem;padding:2px 7px;border-radius:10px;font-weight:600;'+(hasSong?"background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)":"background:rgba(107,107,138,.12);color:var(--gray);border:1px solid var(--border)")+'">'+( hasSong?"✅ Song":"⏳ Kein Song")+'</span>'
+      +'<span style="font-size:.68rem;padding:2px 7px;border-radius:10px;font-weight:600;'+(hasVoted?"background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)":"background:rgba(107,107,138,.12);color:var(--gray);border:1px solid var(--border)")+'">'+( hasVoted?"✅ Abgestimmt":"⏳ Ausstehend")+'</span>'
+      +'</div></div>'
+      +'<button onclick="hostDeleteUser('+u.id+',\''+nick+'\')" style="border:none;background:rgba(255,68,68,.12);color:var(--red);border-radius:8px;padding:6px 10px;font-size:.75rem;font-weight:600;cursor:pointer;flex-shrink:0">Löschen</button>'
+      +'</div>';
+  }).join("");
+  return '<div class="card"><div class="card-title">👥 Teilnehmer ('+allUsers.length+')</div>'+rows+'</div>';
+}
+
 // ── HOST PANEL ────────────────────────────────────────────────────────────
 function renderHostPanel(){
   const vis=appState.visibility;
@@ -967,6 +995,7 @@ function renderHostPanel(){
     <div class="stat-row"><span>Bingos gerufen</span><span class="stat-val">${allBingos.length}</span></div>
     <div class="stat-row"><span>Kommentare</span><span class="stat-val">${allComments.length}</span></div>
   </div>
+  ${renderUserList()}
   ${modeSelector}
   ${escSongInput}
   <div class="card">
