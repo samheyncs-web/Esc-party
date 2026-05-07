@@ -588,7 +588,7 @@ function render(){
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"}];
   }
   if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
   const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
@@ -642,7 +642,7 @@ function renderLogin(){
     <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.0e</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.01e</span></div>
   </div></div>`;
 }
 async function doLogin(){
