@@ -811,7 +811,7 @@ function renderRunningOrder(hostView){
   const ro=_roPending||appState.running_order||[];
   const plUrl=getPlaylistUrl();
   const hasPending=!!_roPending;
-  let html=`<div class="card"><div class="card-title">📋 Running Order${hasPending?` <span style="color:var(--gold);font-size:.75rem;font-weight:600">● Ungespeicherte Änderungen</span>`:\`\`}</div>`;
+  let html='<div class="card"><div class="card-title">📋 Running Order'+(hasPending?'<span style="color:var(--gold);font-size:.75rem;font-weight:600"> ● Ungespeicherte Änderungen</span>':'')+'</div>';
   if(!ro.length) html+=`<div class="info">${hostView?"Noch keine Running Order generiert.":"Noch nicht veröffentlicht."}</div>`;
   else html+=ro.map((s,i)=>{
     const ytId=extractYtId(s.youtube_url);
