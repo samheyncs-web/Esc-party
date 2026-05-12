@@ -759,7 +759,10 @@ function renderLogin(){
     <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.07e</span></div>
+    ${_showHostPw
+      ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.07e</span></div>'
+    }
   </div></div>`;
 }
 async function doLogin(){
@@ -768,9 +771,9 @@ async function doLogin(){
   if(await tryLogin(nick,pin)) render();
 }
 function doHostLogin(){
-  const pw=prompt("Host-Passwort:");
-  if(pw===HOST_PASSWORD){isHost=true;activeNav="panel";showToast("Host-Modus aktiviert 👑");render();}
-  else if(pw!==null) showToast("Falsches Passwort.");
+  const pw=(document.getElementById("hpw")||{}).value||"";
+  if(pw===HOST_PASSWORD){isHost=true;_showHostPw=false;activeNav="panel";showToast("Host-Modus aktiviert 👑");render();}
+  else showToast("Falsches Passwort.");
 }
 
 // ── HELP / INFO ───────────────────────────────────────────────────────────
