@@ -321,7 +321,7 @@ const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,
 // ── App state ─────────────────────────────────────────────────────────────
 let sb, appState={visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8};
 let allUsers=[], allComments=[], allBingos=[];
-let currentUser=null, isHost=false;
+let currentUser=null, isHost=false, _showHostPw=false;
 let activeNav="info", activeKat=0, resultTab="gesamt";
 let _ballot=null, _editingVote=false;
 let _bingoCard=null, _bingoMarked=new Set();
