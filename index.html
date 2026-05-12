@@ -689,6 +689,61 @@ function render(){
   if(ci){ ci.value=_localComment; ci.oninput=e=>_localComment=e.target.value; ci.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();postComment();}}; }
 }
 
+
+// ── ESC FINALIST MANAGER ──────────────────────────────────────────────────
+async function toggleEscFinalist(countryId){
+  const current = appState.esc_finalists || [];
+  const updated = current.includes(countryId) ? current.filter(id=>id!==countryId) : [...current, countryId];
+  await saveState({esc_finalists: updated});
+  render();
+}
+
+function renderEscFinalistManager(){
+  const finalists = appState.esc_finalists || [];
+  const semi1 = ESC2026_ALL.filter(c=>c.semi===1);
+  const semi2 = ESC2026_ALL.filter(c=>c.semi===2);
+  const totalQ = 5 + finalists.length;
+  return `<div class="card">
+    <div class="card-title">🏆 ESC 2026 Finalisten (${totalQ} / 25)</div>
+    <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab.</div>
+    <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Halbfinale 1 (12. Mai)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+      ${semi1.map(c=>{const q=finalists.includes(c.id);return `<button onclick="toggleEscFinalist('${c.id}')" style="border:1px solid ${q?"var(--teal)":"var(--border)"};background:${q?"rgba(0,212,180,.15)":"var(--surface)"};color:${q?"var(--teal)":"var(--gray)"};border-radius:8px;padding:5px 8px;font-size:.73rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">${c.flag} ${c.name}${q?" ✓":""}</button>`;}).join("")}
+    </div>
+    <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Halbfinale 2 (14. Mai)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${semi2.map(c=>{const q=finalists.includes(c.id);return `<button onclick="toggleEscFinalist('${c.id}')" style="border:1px solid ${q?"var(--teal)":"var(--border)"};background:${q?"rgba(0,212,180,.15)":"var(--surface)"};color:${q?"var(--teal)":"var(--gray)"};border-radius:8px;padding:5px 8px;font-size:.73rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">${c.flag} ${c.name}${q?" ✓":""}</button>`;}).join("")}
+    </div>
+  </div>`;
+}
+
+function getEscFinalists(){
+  const stored = appState.esc_finalists || [];
+  return ESC2026_ALL.filter(c => c.autoQual || stored.includes(c.id));
+}
+
+// ── ESC VOTE PREDICTIONS ──────────────────────────────────────────────────
+function renderEscVotePredictions(){
+  const finalists = getEscFinalists();
+  if(!finalists.length) return `<div class="info" style="margin-top:10px">Host muss erst Finalisten im Panel markieren.</div>`;
+  const saved = currentUser?.predictions?.esc_votes || {};
+  return `<div style="margin-top:14px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:.08em;color:var(--teal);margin-bottom:8px">🌍 LÄNDERVOTING — DEINE PROGNOSE</div>
+    <div class="info" style="margin-bottom:8px">Tippe für jedes Finalland die erwarteten Jury- und Publikumspunkte.</div>
+    ${finalists.map(c=>{
+      const jury=_predictions["esc_jury_"+c.id]||saved["jury_"+c.id]||"";
+      const tele=_predictions["esc_tele_"+c.id]||saved["tele_"+c.id]||"";
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:1rem;flex-shrink:0">${c.flag}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${c.name}</div><div style="font-size:.68rem;color:var(--gray)">${c.artist}</div></div>
+        <input type="number" min="0" max="600" placeholder="Jury" value="${jury}" oninput="_predictions['esc_jury_${c.id}']=this.value" style="width:55px;padding:5px 6px;font-size:.8rem;margin:0;text-align:center"/>
+        <input type="number" min="0" max="600" placeholder="TV" value="${tele}" oninput="_predictions['esc_tele_${c.id}']=this.value" style="width:55px;padding:5px 6px;font-size:.8rem;margin:0;text-align:center"/>
+      </div>`;
+    }).join("")}
+    <div style="font-size:.7rem;color:var(--gray);margin-top:6px;text-align:right">Jury · Publikum</div>
+  </div>`;
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 function renderLogin(){
   return `<div class="app"><div class="header">
@@ -704,7 +759,7 @@ function renderLogin(){
     <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.06e</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="doHostLogin();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:'DM Sans',sans-serif;font-weight:500">v1.07e</span></div>
   </div></div>`;
 }
 async function doLogin(){
@@ -1026,6 +1081,7 @@ function renderPredictions(){
     <div class="info">Tippe deine Tipps ab — der Host kann sie am Ende aufdecken und vergleichen.</div>
     ${hasSaved?`<div class="alert alert-gold">✅ Bereits gespeichert — du kannst jederzeit ändern.</div>`:""}
     ${rows}
+    ${getMode()==="esc"?renderEscVotePredictions():""}
     <button class="btn btn-teal" onclick="doSubmitPredictions()">Speichern 🔮</button>
   </div>`;
 }
@@ -1139,6 +1195,7 @@ function renderHostPanel(){
   ${renderUserList()}
   ${modeSelector}
   ${escSongInput}
+  ${mode==="esc"?renderEscFinalistManager():""}
   <div class="card">
     <div class="card-title">👁 Sichtbarkeit</div>
     ${toggles.map(t=>`<div class="toggle-row"><div><div class="toggle-label">${t.label}</div><div class="toggle-desc">${t.desc}</div></div><label class="toggle"><input type="checkbox" ${vis[t.key]?"checked":""} onchange="hostToggleVisibility('${t.key}')"/><span class="toggle-slider"></span></label></div>`).join("")}
