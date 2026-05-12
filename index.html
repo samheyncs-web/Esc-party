@@ -273,6 +273,48 @@ const PREDICTIONS = [
 ];
 
 const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12.","13.","14.","15.","16.","17.","18.","19.","20.","21.","22.","23.","24.","25.","26."];
+
+// ════════════════════════════════════════════════════════════════════
+// ESC 2026 VIENNA — Alle 35 Länder
+// ════════════════════════════════════════════════════════════════════
+const ESC2026_ALL = [
+  {id:"AT",flag:"🇦🇹",name:"Österreich",   artist:"Cosmó",           song:"Tanzschein",                    semi:null,autoQual:true},
+  {id:"FR",flag:"🇫🇷",name:"Frankreich",   artist:"Louane",          song:"Regarde !",                     semi:null,autoQual:true},
+  {id:"DE",flag:"🇩🇪",name:"Deutschland",  artist:"Sarah Engels",    song:"Fire",                          semi:null,autoQual:true},
+  {id:"IT",flag:"🇮🇹",name:"Italien",      artist:"Lucio Corsi",     song:"Per Sempre Sì",                 semi:null,autoQual:true},
+  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Remember Monday",song:"What The Hell Just Happened?",semi:null,autoQual:true},
+  {id:"AL",flag:"🇦🇱",name:"Albanien",     artist:"Shkodra Elektronike",song:"Nân",                       semi:1,autoQual:false},
+  {id:"AM",flag:"🇦🇲",name:"Armenien",     artist:"Parg",            song:"Paloma Rumba",                  semi:1,autoQual:false},
+  {id:"AU",flag:"🇦🇺",name:"Australien",   artist:"Go-Jo",           song:"Eclipse",                       semi:1,autoQual:false},
+  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Mamagama",        song:"Just Go",                       semi:1,autoQual:false},
+  {id:"BE",flag:"🇧🇪",name:"Belgien",      artist:"Zoë Colé",        song:"Dancing on the Ice",            semi:1,autoQual:false},
+  {id:"BG",flag:"🇧🇬",name:"Bulgarien",    artist:"Lian",            song:"Bangaranga",                    semi:1,autoQual:false},
+  {id:"HR",flag:"🇭🇷",name:"Kroatien",     artist:"Marko Bošnjak",   song:"Andromeda",                     semi:1,autoQual:false},
+  {id:"CY",flag:"🇨🇾",name:"Zypern",       artist:"Theo Evan",       song:"JALLA",                         semi:1,autoQual:false},
+  {id:"CZ",flag:"🇨🇿",name:"Tschechien",   artist:"ADONXS",          song:"CROSSROADS",                    semi:1,autoQual:false},
+  {id:"DK",flag:"🇩🇰",name:"Dänemark",     artist:"Sissal",          song:"Før Vi Går Hjem",               semi:1,autoQual:false},
+  {id:"EE",flag:"🇪🇪",name:"Estland",      artist:"Tommy Cash",      song:"Too Epic To Be True",           semi:1,autoQual:false},
+  {id:"FI",flag:"🇫🇮",name:"Finnland",     artist:"Erika Vikman",    song:"Liekinheitin",                  semi:1,autoQual:false},
+  {id:"GE",flag:"🇬🇪",name:"Georgien",     artist:"Mariam Robakidze",song:"On Replay",                     semi:1,autoQual:false},
+  {id:"GR",flag:"🇬🇷",name:"Griechenland", artist:"Klavdia",         song:"Ferto",                         semi:1,autoQual:false},
+  {id:"IL",flag:"🇮🇱",name:"Israel",       artist:"Yuval Raphael",   song:"Michelle",                      semi:1,autoQual:false},
+  {id:"LV",flag:"🇱🇻",name:"Lettland",     artist:"Tautumeitas",     song:"Ēnā",                           semi:2,autoQual:false},
+  {id:"LT",flag:"🇱🇹",name:"Litauen",      artist:"Katažyna",        song:"Sólo Quiero Más",               semi:2,autoQual:false},
+  {id:"LU",flag:"🇱🇺",name:"Luxemburg",    artist:"Eva Marija",      song:"Mother Nature",                 semi:2,autoQual:false},
+  {id:"MT",flag:"🇲🇹",name:"Malta",        artist:"Miriana Conte",   song:"Bella",                         semi:2,autoQual:false},
+  {id:"MD",flag:"🇲🇩",name:"Moldawien",    artist:"Trupa Trupa",     song:"Viva, Moldova!",                semi:2,autoQual:false},
+  {id:"ME",flag:"🇲🇪",name:"Montenegro",   artist:"Nina Žižić",      song:"Nova Zora",                     semi:2,autoQual:false},
+  {id:"NO",flag:"🇳🇴",name:"Norwegen",     artist:"Kyle Alessandro", song:"YA YA YA",                      semi:2,autoQual:false},
+  {id:"PL",flag:"🇵🇱",name:"Polen",        artist:"Dominik Dudek",   song:"Pray",                          semi:2,autoQual:false},
+  {id:"PT",flag:"🇵🇹",name:"Portugal",     artist:"Napa",            song:"Rosa",                          semi:2,autoQual:false},
+  {id:"RO",flag:"🇷🇴",name:"Rumänien",     artist:"Claudiu Moga",    song:"Choke Me",                      semi:2,autoQual:false},
+  {id:"SM",flag:"🇸🇲",name:"San Marino",   artist:"Gabry Ponte",     song:"Superstar",                     semi:2,autoQual:false},
+  {id:"RS",flag:"🇷🇸",name:"Serbien",      artist:"Breskvica",       song:"Kraj Mene",                     semi:2,autoQual:false},
+  {id:"SE",flag:"🇸🇪",name:"Schweden",     artist:"KAJ",             song:"Bara Bada Bastu",               semi:2,autoQual:false},
+  {id:"CH",flag:"🇨🇭",name:"Schweiz",      artist:"Zoë",             song:"Voyage",                        semi:2,autoQual:false},
+  {id:"UA",flag:"🇺🇦",name:"Ukraine",      artist:"Ziferblat",       song:"Bird of Pray",                  semi:2,autoQual:false},
+];
+
 const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,drinking:true};
 // voting_deadline stored in appState.voting_deadline (ISO timestamp or null)
 
