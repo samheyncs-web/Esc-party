@@ -315,6 +315,9 @@ const ESC2026_ALL = [
   {id:"UA",flag:"🇺🇦",name:"Ukraine",      artist:"Ziferblat",       song:"Bird of Pray",                  semi:2,autoQual:false},
 ];
 
+// Semi-1 qualifiers (confirmed 12 May) — pre-loaded as default
+const ESC2026_SEMI1_QUAL = ["BE","HR","FI","GR","IL","LT","MD","PL","RS","SE"];
+
 const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,drinking:true};
 // voting_deadline stored in appState.voting_deadline (ISO timestamp or null)
 
@@ -403,7 +406,11 @@ async function saveState(partial){
   appState=merged;
 }
 function getMode(){ return appState.mode||"party"; }
-function getSongCount(){ return Math.max(5,Number(appState.song_count)||8); }
+function getSongCount(){
+  const mode=getMode();
+  const def=mode==="esc"?25:8;
+  return Math.max(5,Number(appState.song_count)||def);
+}
 function getKategorien(){ return getMode()==="esc" ? KATEGORIEN_ESC : KATEGORIEN; }
 function calcPointScale(n){
   const full=[12,10,8,7,6,5,4,3,2,1];
@@ -745,9 +752,12 @@ function renderEscFinalistManager(){
   const semi1 = ESC2026_ALL.filter(c=>c.semi===1);
   const semi2 = ESC2026_ALL.filter(c=>c.semi===2);
   const totalQ = 5 + finalists.length;
+  const semi1Q = finalists.filter(id=>ESC2026_ALL.find(c=>c.id===id&&c.semi===1)).length;
+  const semi2Q = finalists.filter(id=>ESC2026_ALL.find(c=>c.id===id&&c.semi===2)).length;
   return `<div class="card">
     <div class="card-title">🏆 ESC 2026 Finalisten (${totalQ} / 25)</div>
-    <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab.</div>
+    <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab. Jeweils <strong>10</strong> pro Semi.</div>
+    ${semi1Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 1: 10/10 qualifiziert</div>':(semi1Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 1: '+semi1Q+'/10 qualifiziert</div>':'')}    ${semi2Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 2: 10/10 qualifiziert</div>':(semi2Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 2: '+semi2Q+'/10 qualifiziert</div>':'')}    
     <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Halbfinale 1 (12. Mai)</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
       ${semi1.map(c=>{const q=finalists.includes(c.id);return `<button onclick="toggleEscFinalist('${c.id}')" style="border:1px solid ${q?"var(--teal)":"var(--border)"};background:${q?"rgba(0,212,180,.15)":"var(--surface)"};color:${q?"var(--teal)":"var(--gray)"};border-radius:8px;padding:5px 8px;font-size:.73rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">${c.flag} ${c.name}${q?" ✓":""}</button>`;}).join("")}
@@ -760,7 +770,11 @@ function renderEscFinalistManager(){
 }
 
 function getEscFinalists(){
-  const stored = appState.esc_finalists || [];
+  // If host hasn't set anything yet, pre-load Semi-1 qualifiers as default
+  const stored = appState.esc_finalists;
+  if(!stored || stored.length === 0){
+    return ESC2026_ALL.filter(c => c.autoQual || ESC2026_SEMI1_QUAL.includes(c.id));
+  }
   return ESC2026_ALL.filter(c => c.autoQual || stored.includes(c.id));
 }
 
@@ -786,6 +800,43 @@ function renderEscVotePredictions(){
   </div>`;
 }
 
+
+// ── EVENT EXPORT ──────────────────────────────────────────────────────────
+function hostExportEvent(){
+  const {byKat,totals} = calcResults ? calcResults() : {byKat:{},totals:{}};
+  const songs = appState.running_order || [];
+  const ranked = Object.entries(totals)
+    .map(([idx,pts])=>({rank:0,song:songs[Number(idx)]?.title||"?",pts:Number(pts)}))
+    .sort((a,b)=>b.pts-a.pts)
+    .map((r,i)=>({...r,rank:i+1}));
+
+  const snapshot = {
+    exported_at: new Date().toISOString(),
+    mode: appState.mode,
+    songs: songs.map(s=>s.title),
+    participants: allUsers.map(u=>u.nickname),
+    voted: allUsers.filter(u=>u.has_voted).map(u=>u.nickname),
+    results_gesamt: ranked,
+    results_per_kategorie: {},
+  };
+
+  getKategorien().forEach(k=>{
+    const scores = Object.entries(byKat[k.id]||{})
+      .map(([idx,pts])=>({song:songs[Number(idx)]?.title||"?",pts:Number(pts)}))
+      .sort((a,b)=>b.pts-a.pts);
+    snapshot.results_per_kategorie[k.label] = scores;
+  });
+
+  const blob = new Blob([JSON.stringify(snapshot,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "esc-event-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("📦 Export heruntergeladen!");
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 function renderLogin(){
   return `<div class="app"><div class="header">
@@ -803,7 +854,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.07e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.08e</span></div>'
     }
   </div></div>`;
 }
@@ -1218,7 +1269,7 @@ function renderHostPanel(){
     <div class="card-title">⚙️ Modus</div>
     <div class="mode-selector">
       <div class="mode-opt ${mode==="party"?"selected party":""}" onclick="hostSetMode('party')"><div class="mode-opt-icon">🎉</div><div class="mode-opt-label">Party</div><div class="mode-opt-desc">Gäste reichen Songs ein, keine Eigenbewertung, 8 Kategorien</div></div>
-      <div class="mode-opt ${mode==="esc"?"selected esc":""}" onclick="hostSetMode('esc')"><div class="mode-opt-icon">🌍</div><div class="mode-opt-label">ESC</div><div class="mode-opt-desc">Host gibt Songs ein, alle bewerten alle, 1 Kategorie + Bingo</div></div>
+      <div class="mode-opt ${mode==="esc"?"selected esc":""}" onclick="hostSetMode('esc')"><div class="mode-opt-icon">🌍</div><div class="mode-opt-label">ESC</div><div class="mode-opt-desc">Host gibt Songs ein (Standard: 25), alle bewerten alle + Bingo</div></div>
     </div>
     <div class="field"><label>Anzahl Songs (min. 5)</label><input type="number" id="song_count_input" value="${count}" min="5" max="30" style="margin-bottom:0" onchange="hostSetSongCount(this.value)"/></div>
     <div class="info" style="margin-top:7px">Punkteschlüssel: <strong style="color:var(--teal)">${getPointScale(mode==="party").join(" · ")}</strong></div>
@@ -1279,6 +1330,11 @@ function renderHostPanel(){
       </div>
     </div>`).join("")}
     <button class="btn btn-ghost" style="margin-top:10px;font-size:.78rem" onclick="saveState({reveal_kat_order:[]}).then(()=>render())">Reihenfolge zurücksetzen</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📦 Event-Export</div>
+    <div class="info">Speichert einen Snapshot aller Ergebnisse, Teilnehmer und Votes als JSON-Datei — ideal vor dem Reset.</div>
+    <button class="btn btn-ghost" onclick="hostExportEvent()">📦 Ergebnisse exportieren</button>
   </div>
   <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
 }
