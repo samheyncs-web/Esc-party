@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🎤 ESC Voting</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a12;--surface:#13131f;--card:#1c1c2e;--border:#2a2a40;--teal:#00d4b4;--pink:#ff3d7f;--gold:#ffc947;--red:#ff4444;--white:#f0f0f8;--gray:#6b6b8a}
+html,body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh}
+.app{max-width:680px;margin:0 auto;padding:14px 14px 60px}
+.header{text-align:center;padding:16px 0 12px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,6vw,2.6rem);letter-spacing:.05em;background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.header-sub{font-size:.7rem;color:var(--gray);letter-spacing:.15em;text-transform:uppercase;margin-top:3px}
+.header-nick{font-size:.78rem;color:var(--teal);margin-top:5px;font-weight:600}
+.mode-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.mode-badge.party{background:rgba(255,61,127,.15);color:var(--pink);border:1px solid rgba(255,61,127,.3)}
+.mode-badge.esc{background:rgba(255,201,71,.15);color:var(--gold);border:1px solid rgba(255,201,71,.3)}
+/* Nav */
+.nav{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:12px;padding:3px;border:1px solid var(--border);flex-wrap:wrap}
+.nav-btn{flex:1;min-width:52px;padding:8px 4px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--gray);white-space:nowrap}
+.nav-btn.active{background:var(--card);color:var(--white);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.08em;color:var(--teal);margin-bottom:10px}
+/* Forms */
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s;width:100%;display:block;margin-bottom:8px}
+input:focus,select:focus,textarea:focus{border-color:var(--teal)}
+input::placeholder,textarea::placeholder{color:var(--gray)}
+select option{background:var(--card)}
+textarea{resize:none;min-height:60px}
+.field label{display:block;font-size:.71rem;color:var(--gray);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.field{margin-bottom:8px}
+/* Buttons */
+.btn{border:none;border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.86rem;cursor:pointer;transition:all .2s;width:100%;display:block;text-align:center;margin-top:7px}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#00a891);color:#000}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e6a800);color:#000}
+.btn-red{background:linear-gradient(135deg,var(--red),#cc0000);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--gray);border:1px solid var(--border)}
+.btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+.btn-row{display:flex;gap:7px;margin-top:7px}
+.btn-row .btn{flex:1;margin-top:0}
+/* Info / alerts */
+.info{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;font-size:.81rem;color:var(--gray);line-height:1.6;margin-bottom:9px}
+.info strong{color:var(--white)}
+.info-locked{text-align:center;padding:22px;font-weight:600;color:var(--pink);font-size:.88rem}
+.alert{padding:10px 14px;border-radius:10px;font-size:.82rem;font-weight:600;margin-bottom:10px;text-align:center}
+.alert-gold{background:rgba(255,201,71,.15);border:1px solid rgba(255,201,71,.4);color:var(--gold)}
+/* Toggles */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:.86rem;font-weight:500}
+.toggle-desc{font-size:.71rem;color:var(--gray);margin-top:1px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:var(--gray);border-radius:50%;transition:.3s}
+.toggle input:checked+.toggle-slider{background:var(--teal)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:#000}
+/* Stats */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem}
+.stat-row:last-child{border-bottom:none}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--teal)}
+/* Progress */
+.progress-wrap{margin-bottom:10px}
+.progress-label{display:flex;justify-content:space-between;font-size:.7rem;color:var(--gray);margin-bottom:3px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--pink));border-radius:2px;transition:width .4s ease}
+/* Kat tabs */
+.kat-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.kat-tab{padding:4px 7px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.7rem;font-weight:600;cursor:pointer;position:relative;font-family:'DM Sans',sans-serif;transition:all .2s}
+.kat-tab.ernst.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.1)}
+.kat-tab.lustig.active{border-color:var(--pink);color:var(--pink);background:rgba(255,61,127,.1)}
+.kat-tab.esc-kat.active{border-color:var(--gold);color:var(--gold);background:rgba(255,201,71,.1)}
+.dot{position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%}
+.kat-header{padding:7px 11px;border-radius:10px;margin-bottom:8px}
+.kat-header.ernst{background:rgba(0,212,180,.1);border-left:3px solid var(--teal)}
+.kat-header.lustig{background:rgba(255,61,127,.1);border-left:3px solid var(--pink)}
+.kat-header.esc-kat{background:rgba(255,201,71,.08);border-left:3px solid var(--gold)}
+.kat-label{font-weight:600;font-size:.88rem}
+.kat-desc{font-size:.7rem;color:var(--gray);margin-top:1px}
+/* Song vote rows — two-line */
+.song-vote-row{padding:7px 0;border-bottom:1px solid rgba(42,42,64,.5)}
+.song-vote-row:last-child{border-bottom:none}
+.song-vote-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.song-vote-bottom{display:flex;justify-content:flex-end;padding-left:26px}
+.song-nr{width:19px;font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:var(--teal);text-align:center;flex-shrink:0}
+.song-name{flex:1;font-size:.83rem;font-weight:500;line-height:1.3;word-break:break-word}
+.song-name.own{color:var(--gray);font-style:italic}
+.pts-chips{display:flex;gap:3px;flex-wrap:wrap}
+.pt-chip{width:31px;height:27px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.68rem;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif}
+.pt-chip:hover:not(.taken){border-color:var(--teal);color:var(--teal)}
+.pt-chip.selected{background:var(--teal);border-color:var(--teal);color:#000}
+.pt-chip.taken{opacity:.2;cursor:not-allowed}
+.own-tag{font-size:.66rem;color:var(--pink);background:rgba(255,61,127,.1);border:1px solid rgba(255,61,127,.25);border-radius:4px;padding:2px 6px;flex-shrink:0}
+.pts-legend{display:flex;gap:3px;margin-bottom:7px;flex-wrap:wrap;justify-content:flex-end}
+.pts-legend-chip{min-width:29px;height:19px;border-radius:4px;padding:0 3px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;font-family:'DM Sans',sans-serif}
+/* Running order */
+.ro-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.ro-row:last-child{border-bottom:none}
+.ro-nr{width:26px;height:26px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:var(--teal);flex-shrink:0}
+.ro-info{flex:1;min-width:0}
+.ro-title{font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro-url{font-size:.7rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Results */
+.tabs{display:flex;gap:5px;margin-bottom:11px}
+.tab{flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--gray);font-size:.73rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;font-family:'DM Sans',sans-serif}
+.tab.active{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.08)}
+.rank-row{display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--border)}
+.rank-row:last-child{border-bottom:none}
+.rank-medal{font-size:1rem;width:24px;text-align:center;flex-shrink:0}
+.rank-song{flex:1;min-width:0}
+.rank-song-name{font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--pink));margin-top:3px}
+.rank-pts{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--gold);flex-shrink:0}
+.kat-result{margin-bottom:9px}
+.kat-result-hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 11px;border-radius:8px 8px 0 0;gap:7px}
+.kat-result-hdr.ernst{background:rgba(0,212,180,.15)}
+.kat-result-hdr.lustig{background:rgba(255,61,127,.15)}
+.kat-result-hdr.esc-kat{background:rgba(255,201,71,.12)}
+.kat-result-name{font-weight:600;font-size:.85rem;flex-shrink:0}
+.kat-result-winner{font-size:.71rem;color:var(--gold);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kat-result-rows{background:var(--surface);border-radius:0 0 8px 8px}
+.kat-result-row{display:flex;align-items:center;gap:7px;padding:6px 11px;border-bottom:1px solid var(--border)}
+.kat-result-row:last-child{border-bottom:none}
+.kat-result-rank{width:17px;font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:var(--gray);text-align:center;flex-shrink:0}
+.kat-result-song{flex:1;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kat-bar-wrap{width:50px;flex-shrink:0}
+.kat-bar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--pink))}
+.kat-result-pts{font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:var(--teal);flex-shrink:0}
+/* Bingo */
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:12px}
+.bingo-cell{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:5px 3px;text-align:center;font-size:.62rem;line-height:1.3;cursor:pointer;transition:all .2s;min-height:56px;display:flex;align-items:center;justify-content:center;font-weight:500;color:var(--gray)}
+.bingo-cell.marked{background:var(--teal);border-color:var(--teal);color:#000;font-weight:700}
+.bingo-cell.free{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+.bingo-cell.bingo-line{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:700}
+.bingo-announce{background:linear-gradient(135deg,var(--pink),var(--gold));color:#000;font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.1em;text-align:center;padding:12px;border-radius:12px;margin-bottom:12px;animation:pulse-bg 1s ease-in-out infinite}
+@keyframes pulse-bg{0%,100%{filter:brightness(1)}50%{filter:brightness(1.15)}}
+/* Comments */
+.comment-list{max-height:300px;overflow-y:auto;margin-bottom:10px}
+.comment-item{padding:7px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.comment-item:last-child{border-bottom:none}
+.comment-nick{font-size:.73rem;font-weight:700;color:var(--teal);flex-shrink:0}
+.comment-text{font-size:.82rem;flex:1;word-break:break-word}
+.comment-time{font-size:.65rem;color:var(--gray);flex-shrink:0;margin-top:2px}
+.comment-input-row{display:flex;gap:7px}
+.comment-input-row input{margin-bottom:0;flex:1}
+.comment-input-row button{flex-shrink:0;margin-top:0;width:auto;padding:9px 14px}
+/* Predictions */
+.pred-row{padding:8px 0;border-bottom:1px solid var(--border)}
+.pred-row:last-child{border-bottom:none}
+.pred-label{font-size:.78rem;font-weight:600;margin-bottom:5px}
+.pred-options{display:flex;gap:5px;flex-wrap:wrap}
+.pred-opt{padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--gray);font-size:.73rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.pred-opt.selected{border-color:var(--teal);color:var(--teal);background:rgba(0,212,180,.1)}
+.pred-input{margin-bottom:0;margin-top:5px}
+/* Drinking game */
+.drink-section{margin-bottom:14px}
+.drink-section-title{font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:var(--gold);letter-spacing:.06em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.drink-rule{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(42,42,64,.4);font-size:.81rem;line-height:1.5}
+.drink-rule:last-child{border-bottom:none}
+.drink-amount{flex-shrink:0;font-weight:700;color:var(--teal);font-size:.78rem;min-width:36px}
+/* Info/Help content */
+.help-section{margin-bottom:16px}
+.help-section-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--teal);letter-spacing:.06em;margin-bottom:8px}
+.help-step{display:flex;gap:10px;margin-bottom:8px;font-size:.82rem;line-height:1.55}
+.help-step-nr{width:22px;height:22px;border-radius:50%;background:var(--teal);color:#000;font-weight:700;font-size:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.help-step-text strong{color:var(--white)}
+.help-chip{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-size:.72rem;font-weight:600;margin:1px}
+/* Mode selector */
+.mode-selector{display:flex;gap:7px;margin-bottom:10px}
+.mode-opt{flex:1;padding:11px 8px;border-radius:12px;border:2px solid var(--border);background:var(--surface);cursor:pointer;text-align:center;transition:all .2s}
+.mode-opt.selected.party{border-color:var(--pink);background:rgba(255,61,127,.08)}
+.mode-opt.selected.esc{border-color:var(--gold);background:rgba(255,201,71,.08)}
+.mode-opt-icon{font-size:1.4rem;margin-bottom:3px}
+.mode-opt-label{font-weight:700;font-size:.82rem}
+.mode-opt-desc{font-size:.69rem;color:var(--gray);margin-top:1px}
+.host-song-input{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.host-song-input .song-nr{flex-shrink:0}
+.host-song-input input{margin-bottom:0;flex:1}
+/* Playlist box */
+.playlist-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:.7rem;color:var(--teal);word-break:break-all;font-family:monospace;margin-bottom:7px}
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--teal);color:var(--white);padding:9px 18px;border-radius:10px;font-size:.81rem;font-weight:500;z-index:9999;animation:fadeup .3s ease;white-space:nowrap;max-width:90vw;text-align:center}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.spinner{text-align:center;padding:50px;color:var(--gray)}
+</style>
+</head>
+<body>
+<div id="root"><div class="spinner">⚙️ Verbinde…</div></div>
+<script>
+const SUPABASE_URL      = "https://exielmctdbfwpyyusdhq.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4aWVsbWN0ZGJmd3B5eXVzZGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDI0MzgsImV4cCI6MjA5MzcxODQzOH0.xvExZzS9EZAcsRa5HZkldcMvdDGlk0BNWgM7dfNmuSw";
+const HOST_PASSWORD     = "esctest2025";
+
+// ── Kategorien ────────────────────────────────────────────────────────────
+const KATEGORIEN = [
+  {id:"K1",emoji:"🏆",label:"Bester Song",                    desc:"Der Song, der den Abend am meisten bereichert hat",gruppe:"main"},
+  {id:"K2",emoji:"🎬",label:"Beste visuelle Umsetzung",        desc:"Bestes Video, Bühne, Kostüm oder Gesamtbild",gruppe:"main"},
+  {id:"K3",emoji:"🎤",label:"Beste Stimme / Performance",      desc:"Wer hat gesanglich oder performativ überzeugt?",gruppe:"main"},
+  {id:"K4",emoji:"⭐",label:"Bestes Gesamtpaket",              desc:"Der Song, der trotz allem am meisten im Gedächtnis bleibt",gruppe:"main"},
+  {id:"SP",emoji:"🤪",label:"Sonderpreis: Skurrilster Moment", desc:"Kein Einfluss auf die Gesamtwertung — rein für den Spaß",gruppe:"sonder",sonder:true},
+];
+const KATEGORIEN_ESC = [
+  {id:"ESC",emoji:"🎤",label:"ESC Gesamtbewertung",desc:"Vergib deine Punkte für alle Länder",gruppe:"esc-kat"},
+];
+
+// ── Bingo Tropes ──────────────────────────────────────────────────────────
+const BINGO_TROPES = [
+  "Wind machine","Pyrotechnik / Feuer","Glitzer & Konfetti","Nebelmaschine","Lasershow",
+  "Kostümwechsel auf der Bühne","Outfit aus Pailletten","Traditionelles Kostüm","Flügelkostüm","Umhang wird dramatisch abgeworfen",
+  "Keychange im letzten Refrain","Rap-Teil","Falsett-Moment","Mitsingrefrain","Stimmbruch / Emotionsausbruch",
+  "Sänger:in weint","Kniend singen","Hand aufs Herz","Arm in Zeitlupe heben","In die Kamera zwinkern",
+  "Backgroundtänzer:innen","Akrobatik","Menschenpyramide","Tänzer:in übertreibt es","Offensichtlich playback",
+  "Mikro fällt","Ansagen vergessen","Versprecher","Sichtlich nervös","Texthänger",
+  "Politische Botschaft","Friedensbotschaft","Benachbartes Land gibt 12 Punkte","Jurorin kann sich nicht entscheiden","Jury braucht ewig",
+  "Moderator:in pausiert dramatisch","Schlechte CGI-Effekte","Riesige LED-Wand","Booing im Publikum","Zuschauer singen mit",
+  "Song auf Englisch","Song in Muttersprache","Song in zwei Sprachen","ABBA-Referenz","0 Punkte für jemanden",
+  "Jemand vom Big 5 kommt schlecht weg","Skandinavien dominiert","Votingskandal-Andeutung","Drag-Auftritt","Volksmusik-Element",
+];
+
+// ── Drinking rules ────────────────────────────────────────────────────────
+const DRINK_RULES = {
+  "🎭 Performance": [
+    {a:"1 Schluck", r:"Nebelmaschine in Betrieb"},
+    {a:"1 Schluck", r:"Wind machine — Haare flattern"},
+    {a:"1 Schluck", r:"Pyrotechnik / echtes Feuer"},
+    {a:"1 Schluck", r:"Keychange im letzten Refrain"},
+    {a:"1 Schluck", r:"Sänger:in hebt Hand dramatisch zur Decke"},
+    {a:"1 Schluck", r:"Kostümwechsel während des Songs"},
+    {a:"2 Schlucke", r:"Jemand weint auf der Bühne"},
+    {a:"2 Schlucke", r:"Mikrofon fällt runter"},
+    {a:"2 Schlucke", r:"Offensichtlich Playback"},
+    {a:"Trinken!", r:"Bühne fängt wirklich an zu brennen"},
+  ],
+  "🎤 Gesang & Text": [
+    {a:"1 Schluck", r:"Textzeile ergibt auf Deutsch keinen Sinn"},
+    {a:"1 Schluck", r:"Song enthält das Wort 'fire', 'heart' oder 'love'"},
+    {a:"1 Schluck", r:"Rap-Teil im ESC-Song"},
+    {a:"1 Schluck", r:"Song in zwei oder mehr Sprachen"},
+    {a:"2 Schlucke", r:"Texthänger sichtbar"},
+    {a:"2 Schlucke", r:"Alle im Raum kennen den Refrain nach 30 Sekunden"},
+  ],
+  "🗳 Voting": [
+    {a:"1 Schluck", r:"Benachbartes Land gibt 12 Punkte"},
+    {a:"1 Schluck", r:"Jury-Sprecher:in nimmt zu viel Zeit"},
+    {a:"2 Schlucke", r:"Land bekommt 0 Punkte"},
+    {a:"2 Schlucke", r:"Moderator muss ein Land mehrfach anrufen"},
+    {a:"Alle trinken!", r:"Deutschland oder UK bekommen Nul Points"},
+    {a:"Trinken!", r:"Juryergebnis und Publikum komplett unterschiedlich"},
+  ],
+  "😂 Sonstiges": [
+    {a:"1 Schluck", r:"ABBA-Referenz"},
+    {a:"1 Schluck", r:"Moderator:in macht peinlichen Witz"},
+    {a:"1 Schluck", r:"Friedensbotschaft im Song"},
+    {a:"2 Schlucke", r:"Politischer Kommentar, der offiziell keiner sein soll"},
+    {a:"Alle trinken!", r:"Bingo-Ruf im Raum"},
+    {a:"Trinken!", r:"Jemand aus der Gruppe hat Bingo"},
+  ],
+};
+
+// ── Predictions ───────────────────────────────────────────────────────────
+const PREDICTIONS = [
+  {id:"winner",   label:"🏆 Wer gewinnt?",          type:"text", placeholder:"Land / Interpret…"},
+  {id:"zero",     label:"💀 Wer bekommt 0 Punkte?", type:"text", placeholder:"Land…"},
+  {id:"neighbor", label:"🤝 Wer gibt dem Nachbarn 12 Punkte?", type:"text", placeholder:"Land A → Land B…"},
+  {id:"last",     label:"🐌 Wer wird Letzter?",      type:"text", placeholder:"Land…"},
+  {id:"best_outfit", label:"👗 Bestes Kostüm?",       type:"text", placeholder:"Land / Interpret…"},
+];
+
+const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12.","13.","14.","15.","16.","17.","18.","19.","20.","21.","22.","23.","24.","25.","26."];
+
+// ════════════════════════════════════════════════════════════════════
+// ESC 2026 VIENNA — Alle 35 Länder
+// ════════════════════════════════════════════════════════════════════
+const ESC2026_ALL = [
+  // Auto-qualified (Big 4 + Host Austria)
+  {id:"AT",flag:"🇦🇹",name:"Österreich",   artist:"Cosmó",                          song:"Tanzschein",                    semi:null,autoQual:true},
+  {id:"FR",flag:"🇫🇷",name:"Frankreich",   artist:"Louane",                         song:"Regarde !",                     semi:null,autoQual:true},
+  {id:"DE",flag:"🇩🇪",name:"Deutschland",  artist:"Sarah Engels",                   song:"Fire",                          semi:null,autoQual:true},
+  {id:"IT",flag:"🇮🇹",name:"Italien",      artist:"Sal Da Vinci",                   song:"Per Sempre Sì",                 semi:null,autoQual:true},
+  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Remember Monday",       song:"What The Hell Just Happened?",  semi:null,autoQual:true},
+  // Semi-final 1 (12. Mai) — 15 Länder, 10 qualifizieren
+  {id:"MD",flag:"🇲🇩",name:"Moldawien",    artist:"Satoshi",                        song:"Viva, Moldova!",                semi:1,autoQual:false},
+  {id:"SE",flag:"🇸🇪",name:"Schweden",     artist:"FELICIA",                        song:"My System",                    semi:1,autoQual:false},
+  {id:"HR",flag:"🇭🇷",name:"Kroatien",     artist:"LELEK",                          song:"Andromeda",                     semi:1,autoQual:false},
+  {id:"GR",flag:"🇬🇷",name:"Griechenland", artist:"Akylas",                         song:"Ferto",                         semi:1,autoQual:false},
+  {id:"PT",flag:"🇵🇹",name:"Portugal",     artist:"Bandidos do Cante",              song:"Rosa",                          semi:1,autoQual:false},
+  {id:"GE",flag:"🇬🇪",name:"Georgien",     artist:"Bzikebi",                        song:"On Replay",                     semi:1,autoQual:false},
+  {id:"FI",flag:"🇫🇮",name:"Finnland",     artist:"Linda Lampenius x Pete Parkkonen",song:"Liekinheitin",                semi:1,autoQual:false},
+  {id:"ME",flag:"🇲🇪",name:"Montenegro",   artist:"Tamara Živković",                song:"Nova Zora",                     semi:1,autoQual:false},
+  {id:"EE",flag:"🇪🇪",name:"Estland",      artist:"Vanilla Ninja",                  song:"Too Epic To Be True",           semi:1,autoQual:false},
+  {id:"BE",flag:"🇧🇪",name:"Belgien",      artist:"ESSYLA",                         song:"Dancing on the Ice",            semi:1,autoQual:false},
+  {id:"LT",flag:"🇱🇹",name:"Litauen",      artist:"Lion Ceccah",                    song:"Sólo Quiero Más",               semi:1,autoQual:false},
+  {id:"SM",flag:"🇸🇲",name:"San Marino",   artist:"Senhit feat. Boy George",        song:"Superstar",                     semi:1,autoQual:false},
+  {id:"RS",flag:"🇷🇸",name:"Serbien",      artist:"LAVINA",                         song:"Kraj Mene",                     semi:1,autoQual:false},
+  {id:"IL",flag:"🇮🇱",name:"Israel",       artist:"Noam Bettan",                    song:"Michelle",                      semi:1,autoQual:false},
+  {id:"PL",flag:"🇵🇱",name:"Polen",        artist:"ALICJA",                         song:"Pray",                          semi:1,autoQual:false},
+  // Semi-final 2 (14. Mai) — 15 Länder, 10 qualifizieren
+  {id:"AL",flag:"🇦🇱",name:"Albanien",     artist:"Shkodra Elektronike",            song:"Nân",                           semi:2,autoQual:false},
+  {id:"AM",flag:"🇦🇲",name:"Armenien",     artist:"Parg",                           song:"Paloma Rumba",                  semi:2,autoQual:false},
+  {id:"AU",flag:"🇦🇺",name:"Australien",   artist:"Go-Jo",                          song:"Eclipse",                       semi:2,autoQual:false},
+  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Mamagama",                       song:"Just Go",                       semi:2,autoQual:false},
+  {id:"BG",flag:"🇧🇬",name:"Bulgarien",    artist:"Lian",                           song:"Bangaranga",                    semi:2,autoQual:false},
+  {id:"CY",flag:"🇨🇾",name:"Zypern",       artist:"Theo Evan",                      song:"JALLA",                         semi:2,autoQual:false},
+  {id:"CZ",flag:"🇨🇿",name:"Tschechien",   artist:"ADONXS",                         song:"CROSSROADS",                    semi:2,autoQual:false},
+  {id:"DK",flag:"🇩🇰",name:"Dänemark",     artist:"Sissal",                         song:"Før Vi Går Hjem",               semi:2,autoQual:false},
+  {id:"LV",flag:"🇱🇻",name:"Lettland",     artist:"Tautumeitas",                    song:"Ēnā",                           semi:2,autoQual:false},
+  {id:"LU",flag:"🇱🇺",name:"Luxemburg",    artist:"Eva Marija",                     song:"Mother Nature",                 semi:2,autoQual:false},
+  {id:"MT",flag:"🇲🇹",name:"Malta",        artist:"Miriana Conte",                  song:"Bella",                         semi:2,autoQual:false},
+  {id:"NO",flag:"🇳🇴",name:"Norwegen",     artist:"Kyle Alessandro",                song:"YA YA YA",                      semi:2,autoQual:false},
+  {id:"RO",flag:"🇷🇴",name:"Rumänien",     artist:"Claudiu Moga",                   song:"Choke Me",                      semi:2,autoQual:false},
+  {id:"CH",flag:"🇨🇭",name:"Schweiz",      artist:"Zoë",                            song:"Voyage",                        semi:2,autoQual:false},
+  {id:"UA",flag:"🇺🇦",name:"Ukraine",      artist:"Ziferblat",                      song:"Bird of Pray",                  semi:2,autoQual:false},
+];
+
+// Semi-1 qualifiers (confirmed 12 Mai) — BE, HR, FI, GR, IL, LT, MD, PL, RS, SE
+const ESC2026_SEMI1_QUAL = ["MD","SE","HR","GR","FI","BE","LT","RS","IL","PL"]; (confirmed 12 May) — pre-loaded as default
+const ESC2026_SEMI1_QUAL = ["BE","HR","FI","GR","IL","LT","MD","PL","RS","SE"];
+
+const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,drinking:true};
+// voting_deadline stored in appState.voting_deadline (ISO timestamp or null)
+
+// ── App state ─────────────────────────────────────────────────────────────
+let sb, appState={visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8};
+let allUsers=[], allComments=[], allBingos=[];
+let currentUser=null, isHost=false, _showHostPw=false;
+let activeNav="info", activeKat=0, resultTab="gesamt";
+let _ballot=null, _editingVote=false;
+let _bingoCard=null, _bingoMarked=new Set();
+let _predictions={};
+let _localComment="";
+let channel;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init(){
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  await loadAll();
+  const saved = localStorage.getItem("esc_user");
+  if(saved){ try{ const {n,p}=JSON.parse(saved); await tryLogin(n,p,true); }catch(e){} }
+  // Restore bingo card from localStorage
+  const savedBingo = localStorage.getItem("esc_bingo");
+  if(savedBingo){ try{ const b=JSON.parse(savedBingo); _bingoCard=b.card; _bingoMarked=new Set(b.marked); }catch(e){} }
+  subscribeRealtime();
+  render();
+}
+
+async function loadAll(){
+  try{
+    const [{data:sd},{data:ud},{data:cd},{data:bd}] = await Promise.all([
+      sb.from("esc_state").select("*").eq("id",1).maybeSingle(),
+      sb.from("esc_users").select("id,nickname,song_title,youtube_url,ballot,has_voted,predictions"),
+      sb.from("esc_comments").select("*").order("created_at",{ascending:true}).limit(200),
+      sb.from("esc_bingos").select("*").order("created_at",{ascending:true}),
+    ]);
+    if(sd) appState={...appState,...sd,visibility:{...DEFAULT_VIS,...(sd.visibility||{})}};
+    if(ud) allUsers=ud;
+    if(cd) allComments=cd;
+    if(bd) allBingos=bd;
+    if(currentUser){ const f=allUsers.find(u=>u.id===currentUser.id); if(f) currentUser={...currentUser,...f}; }
+  }catch(e){console.error(e);}
+}
+
+function subscribeRealtime(){
+  if(channel) sb.removeChannel(channel);
+  channel = sb.channel("esc-rt-v2")
+    .on("postgres_changes",{event:"*",schema:"public",table:"esc_state"},  async()=>{await loadAll();render();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"esc_users"},  async()=>{await loadAll();render();})
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"esc_comments"},async()=>{await loadAll();render();})
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"esc_bingos"},  async()=>{await loadAll();render();})
+    .subscribe();
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+function hashPin(p){ let h=0; for(const c of String(p)) h=(h*31+c.charCodeAt(0))&0xffffffff; return h.toString(16); }
+
+async function tryLogin(nick,pin,silent=false){
+  nick=(nick||"").trim();
+  if(!nick||!pin||String(pin).length!==4){ if(!silent) showToast("Nickname und 4-stellige PIN eingeben."); return false; }
+  const {data:ex}=await sb.from("esc_users").select("*").eq("nickname_lower",nick.toLowerCase()).maybeSingle();
+  if(ex){
+    if(ex.pin_hash!==hashPin(pin)){ if(!silent) showToast("Falsche PIN für diesen Nickname."); return false; }
+    currentUser=ex;
+  } else {
+    if(silent) return false;
+    const {data:cr,error}=await sb.from("esc_users").insert({
+      nickname:nick,nickname_lower:nick.toLowerCase(),pin_hash:hashPin(pin),
+      song_title:null,youtube_url:null,ballot:null,has_voted:false,predictions:null
+    }).select().single();
+    if(error){ if(!silent) showToast("Nickname vergeben – anderen Namen oder PIN versuchen."); return false; }
+    currentUser=cr; allUsers.push(cr);
+  }
+  localStorage.setItem("esc_user",JSON.stringify({n:nick,p:pin}));
+  if(!silent) showToast("Willkommen, "+currentUser.nickname+"! 🎤");
+  _ballot = currentUser.ballot ? JSON.parse(JSON.stringify(currentUser.ballot)) : {};
+  _predictions = currentUser.predictions ? JSON.parse(JSON.stringify(currentUser.predictions)) : {};
+  activeNav="info"; return true;
+}
+
+function logout(){ localStorage.removeItem("esc_user"); currentUser=null; isHost=false; _ballot=null; _editingVote=false; _predictions={}; render(); }
+
+// ── State ─────────────────────────────────────────────────────────────────
+async function saveState(partial){
+  const merged={...appState,...partial,visibility:{...appState.visibility,...(partial.visibility||{})}};
+  await sb.from("esc_state").upsert({id:1,...merged});
+  appState=merged;
+}
+function getMode(){ return appState.mode||"party"; }
+function getSongCount(){
+  const mode=getMode();
+  const def=mode==="esc"?25:8;
+  return Math.max(5,Number(appState.song_count)||def);
+}
+function getKategorien(){ return getMode()==="esc" ? KATEGORIEN_ESC : KATEGORIEN; }
+function calcPointScale(n){
+  const full=[12,10,8,7,6,5,4,3,2,1];
+  if(n>=10) return full;
+  if(n<=0)  return [];
+  const priority=[12,10,8,1,3,4,6,7,2,5];
+  return priority.slice(0,n).sort((a,b)=>b-a);
+}
+function getPointScale(excludeOwn){
+  const n=getSongCount()-(excludeOwn?1:0);
+  return calcPointScale(n);
+}
+
+// ── Host actions ──────────────────────────────────────────────────────────
+async function hostToggleVisibility(key){
+  await saveState({visibility:{...appState.visibility,[key]:!appState.visibility[key]}});
+  render();
+}
+async function hostSetMode(m){ const sc=m==="esc"?25:8; await saveState({mode:m,song_count:sc}); render(); }
+async function hostSetSongCount(v){ const n=Math.max(5,Math.min(30,Number(v)||8)); await saveState({song_count:n}); render(); }
+async function hostGenerateRunningOrder(){
+  const users=allUsers.filter(u=>u.song_title&&u.youtube_url);
+  if(!users.length){showToast("Keine Songs eingereicht.");return;}
+  const shuffled=[...users].sort(()=>Math.random()-.5).map(u=>({title:u.song_title,youtube_url:u.youtube_url}));
+  await saveState({running_order:shuffled});
+  showToast("Running Order generiert! 🎲"); render();
+}
+async function hostSetEscSongs(){
+  const count=getSongCount(); const songs=[];
+  for(let i=0;i<count;i++){
+    const title=(document.getElementById("esc_song_"+i)||{}).value||"";
+    if(!title.trim()){showToast("Bitte alle Song-Titel ausfüllen.");return;}
+    songs.push({title:title.trim(),youtube_url:null});
+  }
+  await saveState({running_order:songs});
+  showToast("Songs gespeichert! ✅"); render();
+}
+async function hostReset(what){
+  if(what==="all"){
+    if(!confirm("ALLES zurücksetzen? Alle Nutzer, Songs, Votes, Kommentare und Bingos werden gelöscht!")) return;
+    await Promise.all([
+      sb.from("esc_users").delete().neq("id",0),
+      sb.from("esc_comments").delete().neq("id",0),
+      sb.from("esc_bingos").delete().neq("id",0),
+    ]);
+    await saveState({visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8});
+    allUsers=[]; allComments=[]; allBingos=[]; currentUser=null; isHost=false; _ballot=null;
+    localStorage.removeItem("esc_user"); localStorage.removeItem("esc_bingo");
+    showToast("Alles zurückgesetzt.");
+  } else {
+    if(!confirm("Alle Songs und Votes löschen? Nutzer-Accounts bleiben.")) return;
+    await Promise.all([
+      sb.from("esc_users").update({song_title:null,youtube_url:null,ballot:null,has_voted:false,predictions:null}).neq("id",0),
+      sb.from("esc_comments").delete().neq("id",0),
+      sb.from("esc_bingos").delete().neq("id",0),
+    ]);
+    await saveState({running_order:[],phase:"setup"});
+    showToast("Songs & Votes gelöscht.");
+  }
+  await loadAll(); render();
+}
+
+// ── User actions ──────────────────────────────────────────────────────────
+async function doSubmitSong(){
+  const title=(document.getElementById("s_title")||{}).value||"";
+  const url  =(document.getElementById("s_url")||{}).value||"";
+  if(!title.trim()||!url.trim()){showToast("Titel und URL eingeben.");return;}
+  if(!extractYtId(url)){showToast("Keine gültige YouTube-URL.");return;}
+  const {data}=await sb.from("esc_users").update({song_title:title.trim(),youtube_url:url.trim()}).eq("id",currentUser.id).select().single();
+  if(data) currentUser={...currentUser,...data};
+  await loadAll(); checkAutoCloseSongs(); showToast("Song eingereicht! 🎵"); render();
+}
+async function clearSong(){
+  if(!confirm("Song zurückziehen?")) return;
+  await sb.from("esc_users").update({song_title:null,youtube_url:null}).eq("id",currentUser.id);
+  currentUser={...currentUser,song_title:null,youtube_url:null}; render();
+}
+function toggleChip(katId,songIdx,pts){
+  if(!_ballot) _ballot={};
+  if(!_ballot[katId]) _ballot[katId]={};
+  const kat=_ballot[katId];
+  if(kat[songIdx]===pts){delete kat[songIdx];}
+  else{ Object.keys(kat).forEach(k=>{if(kat[k]===pts)delete kat[k];}); kat[songIdx]=pts; }
+  render();
+}
+async function doSubmitVote(){
+  _editingVote=false;
+  const {data}=await sb.from("esc_users").update({ballot:_ballot,has_voted:true}).eq("id",currentUser.id).select().single();
+  if(data) currentUser={...currentUser,...data};
+  await loadAll(); showToast("Stimme abgegeben! ✅"); render();
+}
+async function doSubmitPredictions(){
+  const {data}=await sb.from("esc_users").update({predictions:_predictions}).eq("id",currentUser.id).select().single();
+  if(data) currentUser={...currentUser,...data};
+  showToast("Predictions gespeichert! 🔮"); render();
+}
+async function postComment(){
+  const txt=(_localComment||"").trim();
+  if(!txt){return;}
+  await sb.from("esc_comments").insert({nickname:currentUser.nickname,text:txt,created_at:new Date().toISOString()});
+  _localComment="";
+  await loadAll(); render();
+  setTimeout(()=>{const cl=document.getElementById("comment-list"); if(cl) cl.scrollTop=cl.scrollHeight;},100);
+}
+
+// ── Bingo ─────────────────────────────────────────────────────────────────
+function generateBingoCard(){
+  const shuffled=[...BINGO_TROPES].sort(()=>Math.random()-.5).slice(0,24);
+  shuffled.splice(12,0,"⭐ FREE ⭐");
+  _bingoCard=shuffled;
+  _bingoMarked=new Set([12]); // free space
+  saveBingoLocal();
+  render();
+}
+function saveBingoLocal(){
+  localStorage.setItem("esc_bingo",JSON.stringify({card:_bingoCard,marked:[..._bingoMarked]}));
+}
+function toggleBingoCell(i){
+  if(i===12) return; // free space
+  if(_bingoMarked.has(i)) _bingoMarked.delete(i);
+  else _bingoMarked.add(i);
+  saveBingoLocal();
+  checkBingo();
+  render();
+}
+function checkBingo(){
+  const lines=[
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20],
+  ];
+  const hasBingo=lines.some(l=>l.every(i=>_bingoMarked.has(i)));
+  if(hasBingo && currentUser){
+    const already=allBingos.find(b=>b.nickname===currentUser.nickname);
+    if(!already){
+      sb.from("esc_bingos").insert({nickname:currentUser.nickname,created_at:new Date().toISOString()});
+    }
+  }
+  return hasBingo;
+}
+function getBingoLines(){
+  const lines=[
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+    [0,6,12,18,24],[4,8,12,16,20],
+  ];
+  const winCells=new Set();
+  lines.forEach(l=>{ if(l.every(i=>_bingoMarked.has(i))) l.forEach(i=>winCells.add(i)); });
+  return winCells;
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function extractYtId(url){ if(!url) return null; const m=url.match(/(?:youtu\.be\/|[?&]v=|\/embed\/)([A-Za-z0-9_-]{11})/); return m?m[1]:null; }
+function showToast(msg){ document.querySelectorAll(".toast").forEach(e=>e.remove()); const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
+function copyToClipboard(text){ navigator.clipboard.writeText(text).then(()=>showToast("Link kopiert!")); }
+function setNav(id){ activeNav=id; render(); }
+function setKat(i){ activeKat=i; render(); }
+function setResultTab(t){ resultTab=t; render(); }
+function fmtTime(iso){ const d=new Date(iso); return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0"); }
+// Returns kategorien in the reveal order set by host (or default order)
+function getRevealKats(){
+  const order = appState.reveal_kat_order;
+  if(!order || order.length === 0) return getKategorien();
+  const kats = getKategorien();
+  // Sort by order array, unknown IDs go last
+  return [...kats].sort((a,b)=>{
+    const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+    if(ia===-1 && ib===-1) return 0;
+    if(ia===-1) return 1;
+    if(ib===-1) return -1;
+    return ia - ib;
+  });
+}
+
+async function hostMoveKat(fromIdx, dir){
+  const kats = getRevealKats();
+  const order = kats.map(k=>k.id);
+  const toIdx = fromIdx + dir;
+  if(toIdx < 0 || toIdx >= order.length) return;
+  [order[fromIdx], order[toIdx]] = [order[toIdx], order[fromIdx]];
+  await saveState({reveal_kat_order: order});
+  render();
+}
+
+function calcResults(){
+  const songs=appState.running_order||[];
+  const kats=getKategorien();
+  const totals={},byKat={};
+  kats.forEach(k=>{byKat[k.id]={};songs.forEach((_,i)=>byKat[k.id][i]=0);});
+  songs.forEach((_,i)=>totals[i]=0);
+  allUsers.filter(u=>u.ballot).forEach(u=>{
+    Object.entries(u.ballot||{}).forEach(([katId,sm])=>{
+      Object.entries(sm||{}).forEach(([sidx,pts])=>{
+        if(byKat[katId]){
+          byKat[katId][sidx]=(byKat[katId][sidx]||0)+Number(pts);
+          // Sonderpreis excluded from totals
+          const kat=kats.find(k=>k.id===katId);
+          if(!kat?.sonder) totals[sidx]=(totals[sidx]||0)+Number(pts);
+        }
+      });
+    });
+  });
+  return{byKat,totals,songs,kats};
+}
+function getPlaylistUrl(){
+  const ids=(appState.running_order||[]).map(s=>extractYtId(s.youtube_url)).filter(Boolean);
+  return ids.length?"https://www.youtube.com/watch_videos?video_ids="+ids.join(","):null;
+}
+
+// ── VOTING TIMER ──────────────────────────────────────────────────────────
+function getVotingDeadline(){ return appState.voting_deadline?new Date(appState.voting_deadline):null; }
+function votingIsLocked(){
+  if(!appState.visibility?.voting) return false;
+  const dl=getVotingDeadline();
+  return dl&&new Date()>dl;
+}
+function getVotingRemainingSeconds(){
+  const dl=getVotingDeadline();
+  if(!dl) return null;
+  return Math.max(0,Math.round((dl-new Date())/1000));
+}
+async function hostStartVotingTimer(minutes){
+  const deadline=new Date(Date.now()+minutes*60*1000).toISOString();
+  await saveState({voting_deadline:deadline,visibility:{...appState.visibility,voting:true}});
+  showToast("⏱ Voting-Timer gestartet: "+minutes+" Minuten");
+  render();
+}
+async function hostClearVotingTimer(){
+  await saveState({voting_deadline:null});
+  render();
+}
+
+// ── AUTO-CLOSE SONG SUBMISSION ─────────────────────────────────────────────
+function checkAutoCloseSongs(){
+  if(!appState.visibility?.submit) return;
+  const count=getSongCount();
+  const submitted=allUsers.filter(u=>u.song_title).length;
+  if(submitted>=count){
+    saveState({visibility:{...appState.visibility,submit:false}});
+    showToast("🔒 Song-Einreichung automatisch geschlossen ("+count+"/"+count+" Songs eingereicht)");
+  }
+}
+
+// ── RUNNING ORDER MANUAL SORT ─────────────────────────────────────────────
+let _roPending=null; // pending unsaved running order
+function roMoveItem(idx,dir){
+  const ro=_roPending||JSON.parse(JSON.stringify(appState.running_order||[]));
+  const j=idx+dir;
+  if(j<0||j>=ro.length) return;
+  [ro[idx],ro[j]]=[ro[j],ro[idx]];
+  _roPending=ro;
+  render();
+}
+async function roSavePending(){
+  if(!_roPending) return;
+  await saveState({running_order:_roPending});
+  _roPending=null;
+  showToast("✅ Running Order gespeichert!");
+  render();
+}
+function roCancelPending(){_roPending=null;render();}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById("root"); if(!root) return;
+  if(!currentUser&&!isHost){root.innerHTML=renderLogin();return;}
+  const vis=appState.visibility;
+  const hasRO=(appState.running_order||[]).length>0;
+  const mode=getMode();
+
+  // Build nav
+  let navItems=[{id:"info",label:"ℹ️ Info"}];
+  if(!isHost){
+    if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
+    if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
+    if(vis.predictions) navItems.push({id:"pred",label:"🔮 Tipps"});
+    if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
+    if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
+    if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
+    if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
+    if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
+  } else {
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"},{id:"testdata",label:"🧪 Testdaten"}];
+  }
+  if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
+  const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
+
+  let content="";
+  if(isHost){
+    if(activeNav==="info")    content=renderHelp(true);
+    if(activeNav==="panel")   content=renderHostPanel();
+    if(activeNav==="order")   content=renderRunningOrder(true);
+    if(activeNav==="results") content=renderResults();
+    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
+    if(activeNav==="bingo")   content=renderBingoAdmin();
+    if(activeNav==="pred")    content=renderPredictionsAdmin();
+    if(activeNav==="testdata") content=renderTestData();
+  } else {
+    if(activeNav==="info")     content=renderHelp(false);
+    if(activeNav==="song")     content=renderSongSubmit();
+    if(activeNav==="order")    content=renderRunningOrder(false);
+    if(activeNav==="pred")     content=renderPredictions();
+    if(activeNav==="vote")     content=renderVoting();
+    if(activeNav==="results")  content=renderResults();
+    if(activeNav==="bingo")    content=renderBingo();
+    if(activeNav==="comments") content=renderComments();
+    if(activeNav==="drinking") content=renderDrinking();
+  }
+
+  const modeBadge=mode==="esc"?`<div><span class="mode-badge esc">🌍 ESC-Modus</span></div>`:`<div><span class="mode-badge party">🎉 Party-Modus</span></div>`;
+  root.innerHTML=`<div class="app">
+    <div class="header">
+      <div class="header-title">🎤 ${mode==="esc"?"ESC":"Alternative ESC"} Voting</div>
+      <div class="header-sub">Voting System</div>
+      ${modeBadge}
+      ${currentUser?`<div class="header-nick">${currentUser.nickname} · <a href="#" onclick="logout();return false;" style="color:var(--gray);font-size:.7rem">Abmelden</a></div>`:""}
+      ${isHost?`<div class="header-nick" style="color:var(--gold)">👑 Host · <a href="#" onclick="isHost=false;render();return false;" style="color:var(--gray);font-size:.7rem">Beenden</a></div>`:""}
+    </div>
+    <div class="nav">${navHtml}</div>
+    ${content}
+  </div>`;
+
+  // Re-attach comment input state
+  const ci=document.getElementById("comment-input");
+  if(ci){ ci.value=_localComment; ci.oninput=e=>_localComment=e.target.value; ci.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();postComment();}}; }
+}
+
+
+// ── ESC FINALIST MANAGER ──────────────────────────────────────────────────
+async function toggleEscFinalist(countryId){
+  const current = appState.esc_finalists || [];
+  const updated = current.includes(countryId) ? current.filter(id=>id!==countryId) : [...current, countryId];
+  await saveState({esc_finalists: updated});
+  render();
+}
+
+function renderEscFinalistManager(){
+  const finalists = appState.esc_finalists || [];
+  const semi1 = ESC2026_ALL.filter(c=>c.semi===1);
+  const semi2 = ESC2026_ALL.filter(c=>c.semi===2);
+  const totalQ = 5 + finalists.length;
+  const semi1Q = finalists.filter(id=>ESC2026_ALL.find(c=>c.id===id&&c.semi===1)).length;
+  const semi2Q = finalists.filter(id=>ESC2026_ALL.find(c=>c.id===id&&c.semi===2)).length;
+  return `<div class="card">
+    <div class="card-title">🏆 ESC 2026 Finalisten (${totalQ} / 25)</div>
+    <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab. Jeweils <strong>10</strong> pro Semi.</div>
+    ${semi1Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 1: 10/10 qualifiziert</div>':(semi1Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 1: '+semi1Q+'/10 qualifiziert</div>':'')}    ${semi2Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 2: 10/10 qualifiziert</div>':(semi2Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 2: '+semi2Q+'/10 qualifiziert</div>':'')}    
+    <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Halbfinale 1 (12. Mai)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+      ${semi1.map(c=>{const q=finalists.includes(c.id);return `<button onclick="toggleEscFinalist('${c.id}')" style="border:1px solid ${q?"var(--teal)":"var(--border)"};background:${q?"rgba(0,212,180,.15)":"var(--surface)"};color:${q?"var(--teal)":"var(--gray)"};border-radius:8px;padding:5px 8px;font-size:.73rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">${c.flag} ${c.name}${q?" ✓":""}</button>`;}).join("")}
+    </div>
+    <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Halbfinale 2 (14. Mai)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${semi2.map(c=>{const q=finalists.includes(c.id);return `<button onclick="toggleEscFinalist('${c.id}')" style="border:1px solid ${q?"var(--teal)":"var(--border)"};background:${q?"rgba(0,212,180,.15)":"var(--surface)"};color:${q?"var(--teal)":"var(--gray)"};border-radius:8px;padding:5px 8px;font-size:.73rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">${c.flag} ${c.name}${q?" ✓":""}</button>`;}).join("")}
+    </div>
+  </div>`;
+}
+
+function getEscFinalists(){
+  // If host hasn't set anything yet, pre-load Semi-1 qualifiers as default
+  const stored = appState.esc_finalists;
+  if(!stored || stored.length === 0){
+    return ESC2026_ALL.filter(c => c.autoQual || ESC2026_SEMI1_QUAL.includes(c.id));
+  }
+  return ESC2026_ALL.filter(c => c.autoQual || stored.includes(c.id));
+}
+
+// ── ESC VOTE PREDICTIONS ──────────────────────────────────────────────────
+function renderEscVotePredictions(){
+  const finalists = getEscFinalists();
+  if(!finalists.length) return `<div class="info" style="margin-top:10px">Host muss erst Finalisten im Panel markieren.</div>`;
+  const saved = currentUser?.predictions?.esc_votes || {};
+  return `<div style="margin-top:14px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:.08em;color:var(--teal);margin-bottom:8px">🌍 LÄNDERVOTING — DEINE PROGNOSE</div>
+    <div class="info" style="margin-bottom:8px">Tippe für jedes Finalland die erwarteten Jury- und Publikumspunkte.</div>
+    ${finalists.map(c=>{
+      const jury=_predictions["esc_jury_"+c.id]||saved["jury_"+c.id]||"";
+      const tele=_predictions["esc_tele_"+c.id]||saved["tele_"+c.id]||"";
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:1rem;flex-shrink:0">${c.flag}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${c.name}</div><div style="font-size:.68rem;color:var(--gray)">${c.artist}</div></div>
+        <input type="number" min="0" max="600" placeholder="Jury" value="${jury}" oninput="_predictions['esc_jury_${c.id}']=this.value" style="width:55px;padding:5px 6px;font-size:.8rem;margin:0;text-align:center"/>
+        <input type="number" min="0" max="600" placeholder="TV" value="${tele}" oninput="_predictions['esc_tele_${c.id}']=this.value" style="width:55px;padding:5px 6px;font-size:.8rem;margin:0;text-align:center"/>
+      </div>`;
+    }).join("")}
+    <div style="font-size:.7rem;color:var(--gray);margin-top:6px;text-align:right">Jury · Publikum</div>
+  </div>`;
+}
+
+
+// ── EVENT EXPORT ──────────────────────────────────────────────────────────
+function hostExportEvent(){
+  const {byKat,totals} = calcResults ? calcResults() : {byKat:{},totals:{}};
+  const songs = appState.running_order || [];
+  const ranked = Object.entries(totals)
+    .map(([idx,pts])=>({rank:0,song:songs[Number(idx)]?.title||"?",pts:Number(pts)}))
+    .sort((a,b)=>b.pts-a.pts)
+    .map((r,i)=>({...r,rank:i+1}));
+
+  const snapshot = {
+    exported_at: new Date().toISOString(),
+    mode: appState.mode,
+    songs: songs.map(s=>s.title),
+    participants: allUsers.map(u=>u.nickname),
+    voted: allUsers.filter(u=>u.has_voted).map(u=>u.nickname),
+    results_gesamt: ranked,
+    results_per_kategorie: {},
+  };
+
+  getKategorien().forEach(k=>{
+    const scores = Object.entries(byKat[k.id]||{})
+      .map(([idx,pts])=>({song:songs[Number(idx)]?.title||"?",pts:Number(pts)}))
+      .sort((a,b)=>b.pts-a.pts);
+    snapshot.results_per_kategorie[k.label] = scores;
+  });
+
+  const blob = new Blob([JSON.stringify(snapshot,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "esc-event-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("📦 Export heruntergeladen!");
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+function renderLogin(){
+  return `<div class="app"><div class="header">
+    <div class="header-title">🎤 ESC Voting</div><div class="header-sub">Voting System</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Willkommen!</div>
+    <div class="info">Gib einen Nickname und eine selbst gewählte 4-stellige PIN ein. Damit kannst du später weitermachen, auch wenn du den Browser schließt.</div>
+    <div style="background:rgba(255,201,71,.12);border:1px solid rgba(255,201,71,.3);border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--gold);margin-bottom:2px;display:flex;gap:8px;align-items:flex-start">
+      <span style="font-size:1.1rem;flex-shrink:0">📸</span>
+      <span><strong>Tipp:</strong> Mach einen Screenshot von Nickname und PIN — du brauchst beides um dich wieder einzuloggen. Der Host kann dir bei einem vergessenen PIN helfen.</span>
+    </div>
+    <div class="field"><label>Nickname</label><input id="l_nick" placeholder="z.B. StarPower99" maxlength="20" style="margin-bottom:0" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="field" style="margin-top:7px"><label>PIN (4 Ziffern)</label><input id="l_pin" type="number" placeholder="1234" style="margin-bottom:0" oninput="this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
+    ${_showHostPw
+      ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.10e</span></div>'
+    }
+  </div></div>`;
+}
+async function doLogin(){
+  const nick=(document.getElementById("l_nick")||{}).value;
+  const pin=(document.getElementById("l_pin")||{}).value;
+  if(await tryLogin(nick,pin)) render();
+}
+function doHostLogin(){
+  const pw=(document.getElementById("hpw")||{}).value||"";
+  if(pw===HOST_PASSWORD){isHost=true;_showHostPw=false;activeNav="panel";showToast("Host-Modus aktiviert 👑");render();}
+  else showToast("Falsches Passwort.");
+}
+
+// ── HELP / INFO ───────────────────────────────────────────────────────────
+function renderHelp(hostView){
+  if(hostView) return renderHostHelp();
+  return `<div class="card">
+    <div class="card-title">ℹ️ Wie funktioniert das hier?</div>
+    <div class="help-section">
+      <div class="help-section-title">🚀 Loslegen</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text"><strong>Du bist bereits eingeloggt</strong> — dein Nickname und deine PIN merken sich deinen Fortschritt, auch wenn du den Browser schließt.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text"><strong>Tabs erscheinen nach und nach</strong> — der Host schaltet sie frei, sobald es soweit ist. Einfach warten.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🎵 Song einreichen (Party-Modus)</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text">Geh auf <span class="help-chip">🎵 Song</span> und trag Titel und YouTube-URL ein.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text"><strong>Anonym!</strong> Dein Name wird nicht mit dem Song verknüpft — der Host sieht nur Titel und URL.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🗳 Abstimmen</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text">Im Tab <span class="help-chip">🗳 Voting</span> siehst du alle Songs in der Running Order.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text">Pro Kategorie vergibst du <strong>jeden Punktwert genau einmal</strong> an verschiedene Songs: <span class="help-chip">12</span><span class="help-chip">10</span><span class="help-chip">8</span> … <span class="help-chip">1</span></div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-text">Im <strong>Party-Modus</strong>: deinen eigenen Song darfst du <strong>nicht</strong> bewerten.</div></div>
+      <div class="help-step"><div class="help-step-nr">4</div><div class="help-step-text">Wenn alle Kategorien ausgefüllt sind, auf <strong>Abstimmen</strong> tippen. Du kannst deine Stimme danach noch ändern.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🎯 Bingo (ESC-Modus)</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text">Generiere deine persönliche Bingo-Karte — jeder bekommt eine zufällig andere.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text">Wenn du etwas auf der Bühne siehst das auf deiner Karte steht, antippen zum Markieren.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-text">Eine vollständige Reihe (waagrecht, senkrecht oder diagonal) = <strong>BINGO!</strong> Allen anderen wird es angezeigt.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🔮 Predictions</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text">Tippe vor dem Abend ab wer gewinnt, wer 0 Punkte bekommt, wer Letzter wird usw.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text">Der Host kann am Ende alle Tipps vergleichen.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🍺 Trinkspiel</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text">Im Tab <span class="help-chip">🍺 Trinken</span> findest du alle Regeln — einfach während der Show mitnehmen.</div></div>
+    </div>
+  </div>`;
+}
+
+function renderHostHelp(){
+  return `<div class="card">
+    <div class="card-title">👑 Host-Anleitung</div>
+    <div class="help-section">
+      <div class="help-section-title">⚙️ Modus wählen</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text"><strong>Party-Modus:</strong> Gäste reichen Songs anonym ein. Du generierst per Klick eine zufällige Running Order.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text"><strong>ESC-Modus:</strong> Du trägst die Songs selbst ein (z.B. alle ESC-Länder). Keine Eigenbewertungs-Sperre. Nur 1 Abstimmungskategorie.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-text">Anzahl Songs / Teilnehmer anpassen — Punkteschlüssel passt sich automatisch an.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">👁 Sichtbarkeit steuern</div>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-text"><strong>Song-Einreichung:</strong> Vor dem Abend einschalten, damit Gäste ihre Songs eintragen können.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-text"><strong>Running Order:</strong> Erst einschalten <em>nachdem</em> du die Reihenfolge gewürfelt hast.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-text"><strong>Abstimmung:</strong> Einschalten wenn alle Songs gespielt wurden.</div></div>
+      <div class="help-step"><div class="help-step-nr">4</div><div class="help-step-text"><strong>Ergebnisse:</strong> Erst freigeben wenn alle abgestimmt haben — für maximale Dramatik.</div></div>
+      <div class="help-step"><div class="help-step-nr">5</div><div class="help-step-text"><strong>Bingo:</strong> Im ESC-Modus vor der Show einschalten. Predictions und Chat nach Belieben.</div></div>
+    </div>
+    <div class="help-section">
+      <div class="help-section-title">🔴 Reset</div>
+      <div class="help-step"><div class="help-step-nr">!</div><div class="help-step-text"><strong>Songs & Votes löschen</strong> — Nutzer-Accounts bleiben erhalten. Gut für einen Neustart ohne neue Registrierung.</div></div>
+      <div class="help-step"><div class="help-step-nr">!</div><div class="help-step-text"><strong>Alles zurücksetzen</strong> — kompletter Reset inkl. aller Nutzer. Nicht versehentlich drücken.</div></div>
+    </div>
+  </div>`;
+}
+
+// ── SONG SUBMIT ───────────────────────────────────────────────────────────
+function renderSongSubmit(){
+  const vis=appState.visibility;
+  const hasSong=currentUser?.song_title;
+  if(hasSong){
+    const ytId=extractYtId(currentUser.youtube_url);
+    return `<div class="card">
+      <div class="card-title">🎵 Dein Song</div>
+      <div class="info"><strong>${currentUser.song_title}</strong><br/><span style="font-size:.71rem;color:var(--teal)">${currentUser.youtube_url||""}</span></div>
+      ${ytId?`<a href="https://youtube.com/watch?v=${ytId}" target="_blank" class="btn btn-ghost" style="margin-top:3px">▶ auf YouTube ansehen</a>`:""}
+      ${vis.submit?`<button class="btn btn-ghost" onclick="clearSong()">Song ändern</button>`:""}
+    </div>`;
+  }
+  if(!vis.submit) return `<div class="card"><div class="info-locked">🔒 Song-Einreichung ist aktuell geschlossen.</div></div>`;
+  return `<div class="card">
+    <div class="card-title">🎵 Deinen Song einreichen</div>
+    <div class="info">Dein Name wird <strong>nicht</strong> mit dem Song verknüpft — der Host sieht nur Titel und URL.</div>
+    <div class="field"><label>Song-Titel / Interpret</label><input id="s_title" placeholder="z.B. Waterloo – ABBA" maxlength="80" style="margin-bottom:0"/></div>
+    <div class="field" style="margin-top:7px"><label>YouTube-URL</label><input id="s_url" placeholder="https://youtube.com/watch?v=…" style="margin-bottom:0"/></div>
+    <button class="btn btn-teal" style="margin-top:10px" onclick="doSubmitSong()">Song einreichen 🎵</button>
+  </div>`;
+}
+
+// ── RUNNING ORDER ─────────────────────────────────────────────────────────
+function renderRunningOrder(hostView){
+  const ro=_roPending||appState.running_order||[];
+  const plUrl=getPlaylistUrl();
+  const hasPending=!!_roPending;
+  let html='<div class="card"><div class="card-title">📋 Running Order'+(hasPending?'<span style="color:var(--gold);font-size:.75rem;font-weight:600"> ● Ungespeicherte Änderungen</span>':'')+'</div>';
+  if(!ro.length) html+=`<div class="info">${hostView?"Noch keine Running Order generiert.":"Noch nicht veröffentlicht."}</div>`;
+  else html+=ro.map((s,i)=>{
+    const ytId=extractYtId(s.youtube_url);
+    return `<div class="ro-row">
+      <div class="ro-nr">${i+1}</div>
+      <div class="ro-info"><div class="ro-title">${s.title}</div>${s.youtube_url?`<div class="ro-url">${s.youtube_url}</div>`:""}</div>
+      ${hostView?`<div style="display:flex;gap:3px;flex-shrink:0">
+        <button onclick="roMoveItem(${i},-1)" ${i===0?"disabled":""} style="border:1px solid var(--border);background:var(--surface);color:${i===0?"var(--border)":"var(--gray)"};border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▲</button>
+        <button onclick="roMoveItem(${i},1)"  ${i===ro.length-1?"disabled":""} style="border:1px solid var(--border);background:var(--surface);color:${i===ro.length-1?"var(--border)":"var(--gray)"};border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent">▼</button>
+      </div>`:""}
+      ${ytId?`<a href="https://youtube.com/watch?v=${ytId}" target="_blank" style="font-size:1.2rem;text-decoration:none;flex-shrink:0">▶️</a>`:""}
+    </div>`;
+  }).join("");
+  if(hostView&&hasPending) html+=`<div class="btn-row" style="margin-top:10px"><button class="btn btn-gold" onclick="roSavePending()" style="font-family:'Bebas Neue',sans-serif;letter-spacing:.05em">✅ REIHENFOLGE SPEICHERN</button><button class="btn btn-ghost" onclick="roCancelPending()">Abbrechen</button></div>`;
+  if(hostView&&plUrl) html+=`<div style="margin-top:12px"><div class="playlist-box">${plUrl}</div><a href="${plUrl}" target="_blank" class="btn btn-teal" style="margin-top:0">▶ YouTube-Playlist öffnen</a><button class="btn btn-ghost" onclick="copyToClipboard('${plUrl}')">Link kopieren</button></div>`;
+  html+=`</div>`; return html;
+}
+
+// ── VOTING ────────────────────────────────────────────────────────────────
+function renderVoting(){
+  const vis=appState.visibility;
+  const ro=appState.running_order||[];
+  const mode=getMode();
+  if(!vis.voting) return `<div class="card"><div class="info-locked">🔒 Abstimmung ist noch nicht geöffnet.</div></div>`;
+  const _votingLocked=votingIsLocked();
+  const _votingRem=getVotingRemainingSeconds();
+  if(!ro.length)  return `<div class="card"><div class="info">Keine Songs in der Running Order.</div></div>`;
+  if(!_ballot) _ballot=currentUser?.ballot?JSON.parse(JSON.stringify(currentUser.ballot)):{};
+  if(_votingLocked&&currentUser?.has_voted){
+    return `<div class="card" style="text-align:center;padding:24px 14px">
+      <div style="font-size:2.2rem;margin-bottom:8px">🔒</div>
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:5px">Voting beendet</div>
+      <div style="color:var(--gray);font-size:.8rem">Die Verkündung beginnt in Kürze. Deine Stimme wurde gezählt.</div>
+      <div style="color:var(--gray);font-size:.7rem;margin-top:5px">${allUsers.filter(u=>u.has_voted).length} von ${allUsers.length} haben abgestimmt</div>
+    </div>`;
+  }
+  if(_votingLocked) return `<div class="card"><div class="info-locked">🔒 Das Voting ist beendet. Die Ergebnisverkündung beginnt in Kürze.</div></div>`;
+  if(currentUser?.has_voted&&!_editingVote){
+    return `<div class="card" style="text-align:center;padding:24px 14px">
+      <div style="font-size:2.2rem;margin-bottom:8px">✅</div>
+      <div style="font-weight:600;font-size:.95rem;margin-bottom:5px">Stimme abgegeben!</div>
+      <div style="color:var(--gray);font-size:.8rem">Warte auf die Ergebnisse vom Host.</div>
+      <div style="color:var(--gray);font-size:.7rem;margin-top:5px">${allUsers.filter(u=>u.has_voted).length} von ${allUsers.length} haben abgestimmt</div>
+      <button class="btn btn-ghost" style="margin-top:12px" onclick="_editingVote=true;render()">Stimme ändern</button>
+    </div>`;
+  }
+  const kats=getKategorien();
+  if(activeKat>=kats.length) activeKat=0;
+  const ownIdx=mode==="party"?ro.findIndex(s=>currentUser?.song_title&&s.title===currentUser.song_title&&s.youtube_url===currentUser.youtube_url):-1;
+  const hasOwn=ownIdx>=0;
+  const pts=getPointScale(hasOwn);
+  const kat=kats[activeKat];
+  const katBallot=_ballot[kat.id]||{};
+  const used=new Set(Object.values(katBallot));
+  const needed=pts.length;
+  const filledKats=kats.filter(k=>{
+    const assigned=Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx));
+    return assigned.length>=needed;
+  }).length;
+  const katTabs=kats.map((k,i)=>{
+    const assigned=Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx)).length;
+    const dotColor=assigned>=needed?"var(--teal)":assigned>0?"var(--gold)":"";
+    return `<button class="kat-tab ${k.gruppe} ${i===activeKat?"active":""}" onclick="setKat(${i})">${k.id}${dotColor?`<span class="dot" style="background:${dotColor}"></span>`:""}</button>`;
+  }).join("");
+  const legend=pts.map(p=>{const u=used.has(p);return `<div class="pts-legend-chip" style="color:${u?(p===12?"var(--gold)":"var(--teal)"):"var(--gray)"};text-decoration:${u?"line-through":"none"}">${p}</div>`;}).join("");
+  const songRows=ro.map((s,i)=>{
+    const isOwn=i===ownIdx;
+    const assigned=katBallot[i];
+    if(isOwn) return `<div class="song-vote-row"><div class="song-vote-top"><div class="song-nr">${i+1}</div><div class="song-name own">${s.title}</div><span class="own-tag">dein Song</span></div></div>`;
+    const chips=pts.map(p=>{
+      const sel=assigned===p,taken=!sel&&used.has(p);
+      return `<button class="pt-chip ${sel?"selected":""} ${taken?"taken":""}" onclick="${taken?"":"toggleChip('"+kat.id+"',"+i+","+p+")"}">${p}</button>`;
+    }).join("");
+    return `<div class="song-vote-row"><div class="song-vote-top"><div class="song-nr">${i+1}</div><div class="song-name">${s.title}</div></div><div class="song-vote-bottom"><div class="pts-chips">${chips}</div></div></div>`;
+  }).join("");
+  const canSubmit=kats.every(k=>Object.keys(_ballot[k.id]||{}).filter(idx=>String(idx)!==String(ownIdx)).length>=needed);
+  return `
+  <div class="progress-wrap">
+    <div class="progress-label"><span>Kategorien ausgefüllt</span><span>${filledKats} / ${kats.length}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${(filledKats/kats.length)*100}%"></div></div>
+  </div>
+  ${kats.length>1?`<div class="kat-tabs">${katTabs}</div>`:""}
+  <div class="card">
+    <div class="kat-header ${kat.gruppe}"><div class="kat-label">${kat.emoji} ${kat.label}</div><div class="kat-desc">${kat.desc}</div></div>
+    <div class="pts-legend">${legend}</div>
+    ${songRows}
+  </div>
+  <button class="btn btn-teal" ${canSubmit?"":"disabled"} onclick="${canSubmit?"doSubmitVote()":""}">
+    ${canSubmit?"Abstimmen ✅":"Noch "+(kats.length-filledKats)+" Kategorie(n) ausfüllen…"}
+  </button>
+  ${_votingRem!==null&&_votingRem>0?`<div style="text-align:center;margin-top:8px;padding:8px;background:rgba(0,212,180,.08);border-radius:10px;border:1px solid rgba(0,212,180,.2)"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--teal)">${Math.floor(_votingRem/60)}:${String(_votingRem%60).padStart(2,"0")}</span> <span style="font-size:.75rem;color:var(--gray)">verbleibend</span></div>`:""}
+  <div style="font-size:.7rem;color:var(--gray);text-align:center;margin-top:7px">${allUsers.filter(u=>u.has_voted).length} von ${allUsers.length} haben abgestimmt</div>`;
+}
+
+// ── RESULTS ───────────────────────────────────────────────────────────────
+function renderResults(){
+  const vis=appState.visibility;
+  if(!isHost&&!vis.results) return `<div class="card"><div class="info-locked">🔒 Ergebnisse noch nicht freigegeben.</div></div>`;
+  const {byKat,totals,songs,kats}=calcResults();
+  if(!songs.length) return `<div class="card"><div class="info">Keine Songs vorhanden.</div></div>`;
+  const ranked=Object.entries(totals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+  const maxPts=ranked[0]?.pts||1;
+  const mode=getMode();
+  const showKatTabs=mode==="party"&&kats.length>1;
+  let tabs="";
+  if(showKatTabs) tabs=`<div class="tabs"><div class="tab ${resultTab==="gesamt"?"active":""}" onclick="setResultTab('gesamt')">🏆 Gesamt</div><div class="tab ${resultTab==="main"?"active":""}" onclick="setResultTab('main')">⭐ Kategorien</div><div class="tab ${resultTab==="sonder"?"active":""}" onclick="setResultTab('sonder')">🤪 Sonderpreis</div></div>`;
+  let content="";
+  if(!showKatTabs||resultTab==="gesamt"){
+    const rows=ranked.map((r,i)=>`<div class="rank-row"><div class="rank-medal">${MEDALS[i]||i+1+"."}</div><div class="rank-song"><div class="rank-song-name">${r.name}</div><div class="rank-bar" style="width:${(r.pts/maxPts)*100}%"></div></div><div class="rank-pts">${r.pts}</div></div>`).join("");
+    const v=allUsers.filter(u=>u.has_voted).length;
+    content=`<div class="card">${rows}<div style="font-size:.7rem;color:var(--gray);text-align:center;margin-top:9px">${v} Stimmzettel</div></div>`;
+  } else {
+    // Group totals for ernst/lustig
+    const groupTotals={};
+    songs.forEach((_,i)=>groupTotals[i]=0);
+    kats.filter(k=>k.gruppe===resultTab||k.id===resultTab).forEach(k=>{
+      Object.entries(byKat[k.id]||{}).forEach(([idx,pts])=>{ groupTotals[idx]=(groupTotals[idx]||0)+Number(pts); });
+    });
+    const groupRanked=Object.entries(groupTotals).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+    const groupMax=groupRanked[0]?.pts||1;
+    const groupLabel=resultTab==="main"?"⭐ Gesamt Hauptkategorien":"🤪 Sonderpreis-Gesamt";
+    const groupColor=resultTab==="main"?"var(--teal)":"var(--pink)";
+    const groupSummary=`<div class="kat-result" style="margin-top:4px">
+      <div class="kat-result-hdr ${resultTab}" style="border-top:2px solid ${groupColor}">
+        <span class="kat-result-name" style="color:${groupColor}">${groupLabel}</span>
+        ${groupRanked[0]?`<span class="kat-result-winner">🏆 ${groupRanked[0].name}</span>`:""}
+      </div>
+      <div class="kat-result-rows">${groupRanked.map((r,i)=>`<div class="kat-result-row">
+        <div class="kat-result-rank">${MEDALS[i]||i+1+"."}</div>
+        <div class="kat-result-song">${r.name}</div>
+        <div class="kat-bar-wrap"><div class="kat-bar" style="width:${(r.pts/groupMax)*100}%;background:${groupColor}"></div></div>
+        <div class="kat-result-pts" style="color:${groupColor}">${r.pts}</div>
+      </div>`).join("")}</div>
+    </div>`;
+    content=kats.filter(k=>k.gruppe===resultTab).map(kat=>{
+      const scores=Object.entries(byKat[kat.id]||{}).map(([idx,pts])=>({idx:Number(idx),pts,name:songs[idx]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+      const top=scores[0]?.pts||1;
+      return `<div class="kat-result"><div class="kat-result-hdr ${kat.gruppe}"><span class="kat-result-name">${kat.emoji} ${kat.label}</span>${scores[0]?`<span class="kat-result-winner">🏆 ${scores[0].name}</span>`:""}</div><div class="kat-result-rows">${scores.map((s,i)=>`<div class="kat-result-row"><div class="kat-result-rank">${MEDALS[i]||i+1+"."}</div><div class="kat-result-song">${s.name}</div><div class="kat-bar-wrap"><div class="kat-bar" style="width:${(s.pts/top)*100}%"></div></div><div class="kat-result-pts">${s.pts}</div></div>`).join("")}</div></div>`;
+    }).join("")+groupSummary;
+  }
+  return tabs+content;
+}
+
+// ── BINGO ─────────────────────────────────────────────────────────────────
+function renderBingo(){
+  const latestBingos=allBingos.slice(-3);
+  const bingoAnnounce=latestBingos.length?`<div class="bingo-announce">🎯 BINGO! ${latestBingos.map(b=>b.nickname).join(", ")} ${latestBingos.length===1?"hat":"haben"} Bingo!</div>`:"";
+  if(!_bingoCard){
+    return `${bingoAnnounce}<div class="card" style="text-align:center;padding:24px">
+      <div style="font-size:2rem;margin-bottom:10px">🎯</div>
+      <div style="font-weight:600;margin-bottom:6px">Deine Bingo-Karte</div>
+      <div class="info" style="text-align:left">Jeder bekommt eine zufällig gemischte Karte. Markiere Felder wenn du sie auf der Bühne siehst. Eine vollständige Reihe = BINGO!</div>
+      <button class="btn btn-teal" onclick="generateBingoCard()">Karte generieren 🎯</button>
+    </div>`;
+  }
+  const winCells=getBingoLines();
+  const hasBingo=winCells.size>0;
+  const cells=_bingoCard.map((t,i)=>{
+    const isFree=i===12;
+    const isMarked=_bingoMarked.has(i);
+    const isWin=winCells.has(i);
+    const cls=isFree?"free":isWin?"bingo-line":isMarked?"marked":"";
+    return `<div class="bingo-cell ${cls}" onclick="toggleBingoCell(${i})">${t}</div>`;
+  }).join("");
+  return `${bingoAnnounce}
+  ${hasBingo?`<div class="alert alert-gold">🎯 BINGO! Du hast eine vollständige Reihe!</div>`:""}
+  <div class="bingo-grid">${cells}</div>
+  <button class="btn btn-ghost" onclick="if(confirm('Neue Karte generieren?')){_bingoCard=null;_bingoMarked=new Set();localStorage.removeItem('esc_bingo');render();}">Neue Karte</button>`;
+}
+
+function renderBingoAdmin(){
+  return `<div class="card">
+    <div class="card-title">🎯 Bingo-Status</div>
+    ${allBingos.length===0?`<div class="info">Noch niemand hat Bingo.</div>`:allBingos.map((b,i)=>`<div class="stat-row"><span>${i+1}. ${b.nickname}</span><span style="font-size:.7rem;color:var(--gray)">${fmtTime(b.created_at)}</span></div>`).join("")}
+  </div>
+  <div class="info">Das Bingo läuft bei den Gästen lokal — kein Sync der einzelnen Karten. Nur der Bingo-Ruf wird allen angezeigt.</div>`;
+}
+
+// ── COMMENTS ──────────────────────────────────────────────────────────────
+function renderComments(){
+  const vis=appState.visibility;
+  if(!vis.comments) return `<div class="card"><div class="info-locked">🔒 Chat ist noch nicht geöffnet.</div></div>`;
+  const items=allComments.map(c=>`<div class="comment-item">
+    <div class="comment-nick">${c.nickname}</div>
+    <div class="comment-text">${c.text.replace(/</g,"&lt;")}</div>
+    <div class="comment-time">${fmtTime(c.created_at)}</div>
+  </div>`).join("");
+  return `<div class="card">
+    <div class="card-title">💬 Live-Chat</div>
+    <div class="comment-list" id="comment-list">${items||"<div style='color:var(--gray);font-size:.8rem;text-align:center;padding:16px'>Noch keine Kommentare.</div>"}</div>
+    <div class="comment-input-row">
+      <input id="comment-input" placeholder="Kommentar tippen…" maxlength="200" style="margin-bottom:0"/>
+      <button class="btn btn-teal" onclick="postComment()">→</button>
+    </div>
+  </div>`;
+}
+
+// ── PREDICTIONS ───────────────────────────────────────────────────────────
+function renderPredictions(){
+  const vis=appState.visibility;
+  if(!vis.predictions) return `<div class="card"><div class="info-locked">🔒 Predictions sind noch nicht geöffnet.</div></div>`;
+  const saved=currentUser?.predictions||{};
+  const rows=PREDICTIONS.map(p=>`<div class="pred-row">
+    <div class="pred-label">${p.label}</div>
+    <input class="pred-input" placeholder="${p.placeholder}" maxlength="60"
+      value="${(_predictions[p.id]||saved[p.id]||"").replace(/"/g,"&quot;")}"
+      oninput="_predictions['${p.id}']=this.value"/>
+  </div>`).join("");
+  const hasSaved=Object.keys(saved).length>0;
+  return `<div class="card">
+    <div class="card-title">🔮 Deine Predictions</div>
+    <div class="info">Tippe deine Tipps ab — der Host kann sie am Ende aufdecken und vergleichen.</div>
+    ${hasSaved?`<div class="alert alert-gold">✅ Bereits gespeichert — du kannst jederzeit ändern.</div>`:""}
+    ${rows}
+    ${getMode()==="esc"?renderEscVotePredictions():""}
+    <button class="btn btn-teal" onclick="doSubmitPredictions()">Speichern 🔮</button>
+  </div>`;
+}
+
+function renderPredictionsAdmin(){
+  const withPreds=allUsers.filter(u=>u.predictions&&Object.keys(u.predictions).length>0);
+  if(!withPreds.length) return `<div class="card"><div class="info">Noch keine Predictions eingegangen.</div></div>`;
+  return withPreds.map(u=>`<div class="card">
+    <div class="card-title" style="color:var(--gold)">${u.nickname}</div>
+    ${PREDICTIONS.map(p=>`<div class="stat-row"><span style="font-size:.78rem;color:var(--gray)">${p.label}</span><span style="font-size:.82rem;font-weight:600">${u.predictions[p.id]||"—"}</span></div>`).join("")}
+  </div>`).join("");
+}
+
+// ── DRINKING GAME ─────────────────────────────────────────────────────────
+function renderDrinking(){
+  const vis=appState.visibility;
+  if(!vis.drinking) return `<div class="card"><div class="info-locked">🔒 Trinkspiel noch nicht aktiv.</div></div>`;
+  return `<div class="card">
+    <div class="card-title">🍺 ESC Trinkspiel</div>
+    <div class="info" style="margin-bottom:12px">Trink verantwortungsbewusst — und alternativ auch einfach Wasser oder Saft. Diese Regeln sind als Unterhaltung gedacht.</div>
+    ${Object.entries(DRINK_RULES).map(([section,rules])=>`<div class="drink-section">
+      <div class="drink-section-title">${section}</div>
+      ${rules.map(r=>`<div class="drink-rule"><span class="drink-amount">${r.a}</span><span>${r.r}</span></div>`).join("")}
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── USER LIST ─────────────────────────────────────────────────────────────
+async function hostDeleteUser(userId, nickname){
+  if(!confirm('Nutzer "'+nickname+'" wirklich löschen? Damit werden auch sein Song und seine Stimme entfernt.')) return;
+  await sb.from("esc_users").delete().eq("id", userId);
+  await loadAll();
+  showToast(nickname+" gelöscht.");
+  render();
+}
+
+async function hostResetPin(userId, nickname){
+  const newPin = String(Math.floor(1000+Math.random()*9000));
+  const newHash = hashPin(newPin);
+  await sb.from("esc_users").update({pin_hash:newHash}).eq("id",userId);
+  await loadAll();
+  showToast("Neue PIN für "+nickname+": "+newPin+" — bitte weitergeben!");
+  // Keep toast visible longer
+  setTimeout(()=>showToast("📌 "+nickname+" → neue PIN: "+newPin),3000);
+  render();
+}
+
+function renderUserList(){
+  if(!allUsers.length) return '<div class="card"><div class="card-title">👥 Teilnehmer</div><div class="info">Noch niemand registriert.</div></div>';
+  const rows = allUsers.map(u => {
+    const hasSong  = !!u.song_title;
+    const hasVoted = !!u.has_voted;
+    const nick = u.nickname.replace(/'/g,"\\'");
+    // Decode PIN from hash for display - we store hash so we can't reverse it
+    // Instead show a reset button that generates a new one
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.nickname+'</div>'
+      +'<div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">'
+      +'<span style="font-size:.66rem;padding:2px 6px;border-radius:10px;font-weight:600;'+(hasSong?"background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)":"background:rgba(107,107,138,.12);color:var(--gray);border:1px solid var(--border)")+'">'+( hasSong?"✅ Song":"⏳ Kein Song")+'</span>'
+      +'<span style="font-size:.66rem;padding:2px 6px;border-radius:10px;font-weight:600;'+(hasVoted?"background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)":"background:rgba(107,107,138,.12);color:var(--gray);border:1px solid var(--border)")+'">'+( hasVoted?"✅ Vote":"⏳ Offen")+'</span>'
+      +'</div></div>'
+      +'<button onclick="hostResetPin('+u.id+',\''+nick+'\')" title="PIN zurücksetzen" style="border:none;background:rgba(255,201,71,.12);color:var(--gold);border-radius:8px;padding:5px 8px;font-size:.72rem;font-weight:600;cursor:pointer;flex-shrink:0">🔑 PIN</button>'
+      +'<button onclick="hostDeleteUser('+u.id+',\''+nick+'\')" style="border:none;background:rgba(255,68,68,.12);color:var(--red);border-radius:8px;padding:5px 8px;font-size:.72rem;font-weight:600;cursor:pointer;flex-shrink:0">✕</button>'
+      +'</div>';
+  }).join("");
+  return '<div class="card"><div class="card-title">👥 Teilnehmer ('+allUsers.length+')</div>'+rows+'</div>';
+}
+
+// ── HOST PANEL ────────────────────────────────────────────────────────────
+function renderHostPanel(){
+  const vis=appState.visibility;
+  const mode=getMode();
+  const songCount=allUsers.filter(u=>u.song_title).length;
+  const voteCount=allUsers.filter(u=>u.has_voted).length;
+  const hasRO=(appState.running_order||[]).length>0;
+  const count=getSongCount();
+  const toggles=[
+    ...(mode==="party"?[{key:"submit",label:"Song-Einreichung",desc:"Gäste können Songs einreichen"}]:[]),
+    {key:"running_order",label:"Running Order",  desc:"Gäste sehen die Reihenfolge"},
+    {key:"predictions",  label:"Predictions",    desc:"Gäste können Tipps abgeben"},
+    {key:"voting",       label:"Abstimmung",      desc:"Gäste können abstimmen"},
+    {key:"results",      label:"Ergebnisse",      desc:"Gäste sehen das Ergebnis"},
+    {key:"bingo",        label:"Bingo",           desc:"Gäste sehen das Bingo-Feld (ESC-Modus)"},
+    {key:"comments",     label:"Live-Chat",       desc:"Gäste können chatten"},
+    {key:"drinking",     label:"Trinkspiel",      desc:"Gäste sehen die Trinkspielregeln"},
+  ];
+  const modeSelector=`<div class="card">
+    <div class="card-title">⚙️ Modus</div>
+    <div class="mode-selector">
+      <div class="mode-opt ${mode==="party"?"selected party":""}" onclick="hostSetMode('party')"><div class="mode-opt-icon">🎉</div><div class="mode-opt-label">Party</div><div class="mode-opt-desc">Gäste reichen Songs ein, keine Eigenbewertung, 4 Kategorien + Sonderpreis</div></div>
+      <div class="mode-opt ${mode==="esc"?"selected esc":""}" onclick="hostSetMode('esc')"><div class="mode-opt-icon">🌍</div><div class="mode-opt-label">ESC</div><div class="mode-opt-desc">Host gibt Songs ein (Standard: 25), alle bewerten alle + Bingo</div></div>
+    </div>
+    <div class="field"><label>Anzahl Songs (min. 5)</label><input type="number" id="song_count_input" value="${count}" min="5" max="30" style="margin-bottom:0" onchange="hostSetSongCount(this.value)"/></div>
+    <div class="info" style="margin-top:7px">Punkteschlüssel: <strong style="color:var(--teal)">${getPointScale(mode==="party").join(" · ")}</strong></div>
+  </div>`;
+  const escSongInput=mode==="esc"?`<div class="card">
+    <div class="card-title">🎵 Songs eingeben</div>
+    ${Array.from({length:count},(_,i)=>`<div class="host-song-input"><div class="song-nr">${i+1}</div><input id="esc_song_${i}" placeholder="Land / Titel / Interpret" maxlength="60" style="margin-bottom:0" value="${(appState.running_order||[])[i]?.title||""}"/></div>`).join("")}
+    <button class="btn btn-teal" onclick="hostSetEscSongs()">Songs speichern ✅</button>
+  </div>`:"";
+  return `
+  <div class="card">
+    <div class="card-title">📊 Status</div>
+    <div class="stat-row"><span>Teilnehmer registriert</span><span class="stat-val">${allUsers.length}</span></div>
+    ${mode==="party"?`<div class="stat-row"><span>Songs eingereicht</span><span class="stat-val">${songCount}</span></div>`:""}
+    <div class="stat-row"><span>Stimmen abgegeben</span><span class="stat-val">${voteCount}</span></div>
+    <div class="stat-row"><span>Bingos gerufen</span><span class="stat-val">${allBingos.length}</span></div>
+    <div class="stat-row"><span>Kommentare</span><span class="stat-val">${allComments.length}</span></div>
+  </div>
+  ${renderUserList()}
+  ${modeSelector}
+  ${escSongInput}
+  ${mode==="esc"?renderEscFinalistManager():""}
+  <div class="card">
+    <div class="card-title">👁 Sichtbarkeit</div>
+    ${toggles.map(t=>`<div class="toggle-row"><div><div class="toggle-label">${t.label}</div><div class="toggle-desc">${t.desc}</div></div><label class="toggle"><input type="checkbox" ${vis[t.key]?"checked":""} onchange="hostToggleVisibility('${t.key}')"/><span class="toggle-slider"></span></label></div>`).join("")}
+  </div>
+  ${mode==="party"?`<div class="card"><div class="card-title">🎲 Running Order</div><div class="info"><strong>${songCount}</strong> Song(s) eingereicht.</div><button class="btn btn-teal" onclick="hostGenerateRunningOrder()" ${songCount===0?"disabled":""}>${hasRO?"Neu würfeln 🎲":"Running Order generieren 🎲"}</button></div>`:""}
+  <div class="card">
+    <div class="card-title">⏱ Voting-Steuerung</div>
+    ${(()=>{
+      const dl=getVotingDeadline();
+      const rem=getVotingRemainingSeconds();
+      const locked=votingIsLocked();
+      const mins=[15,30,45,60];
+      if(locked) return `<div class="alert alert-gold">🔒 Voting automatisch geschlossen — Zeit abgelaufen.</div>
+        <button class="btn btn-ghost" onclick="hostClearVotingTimer()">Timer zurücksetzen</button>`;
+      if(dl&&rem>0) return `<div style="text-align:center;padding:10px 0">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--teal)">${Math.floor(rem/60)}:${String(rem%60).padStart(2,"0")}</div>
+        <div style="font-size:.75rem;color:var(--gray);margin-top:2px">Verbleibend</div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:4px" onclick="hostClearVotingTimer()">Timer stoppen</button>`;
+      return `<div class="info" style="margin-bottom:8px">Automatisches Schließen nach Zeit — oder manuell über den Sichtbarkeits-Toggle.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${mins.map(m=>`<button onclick="hostStartVotingTimer(${m})" class="btn btn-ghost" style="flex:1;margin:0;padding:8px 4px;font-size:.8rem">${m} Min</button>`).join("")}</div>`;
+    })()}
+  </div>
+  <div class="card">
+    <div class="card-title">🎭 Verkündungs-Einstellungen</div>
+    <div class="toggle-row" style="margin-bottom:10px">
+      <div><div class="toggle-label">ESC-Stil Reveal</div><div class="toggle-desc">Teilnehmer einzeln, Punkte aufsteigend, Top-Punkt per Klick, dann Zwischenstand</div></div>
+      <button onclick="saveState({reveal_esc_mode:!appState.reveal_esc_mode}).then(()=>render())" style="border:none;border-radius:20px;padding:5px 14px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s;background:${appState.reveal_esc_mode?'var(--teal)':'var(--border)'};color:${appState.reveal_esc_mode?'#000':'var(--gray)'}">${appState.reveal_esc_mode?'AN':'AUS'}</button>
+    </div>
+    <div style="font-size:.8rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Kategorien-Reihenfolge</div>
+    ${getRevealKats().map((k,i,arr)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;font-size:.86rem;font-weight:500">${k.emoji} ${k.label}</div>
+      <div style="display:flex;gap:4px">
+        <button onclick="hostMoveKat(${i},-1)" ${i===0?"disabled":""} style="border:none;background:var(--surface);border:1px solid var(--border);color:${i===0?"var(--border)":"var(--gray)"};border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center">▲</button>
+        <button onclick="hostMoveKat(${i},1)"  ${i===arr.length-1?"disabled":""} style="border:none;background:var(--surface);border:1px solid var(--border);color:${i===arr.length-1?"var(--border)":"var(--gray)"};border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center">▼</button>
+      </div>
+    </div>`).join("")}
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:.78rem" onclick="saveState({reveal_kat_order:[]}).then(()=>render())">Reihenfolge zurücksetzen</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📦 Event-Export</div>
+    <div class="info">Speichert einen Snapshot aller Ergebnisse, Teilnehmer und Votes als JSON-Datei — ideal vor dem Reset.</div>
+    <button class="btn btn-ghost" onclick="hostExportEvent()">📦 Ergebnisse exportieren</button>
+  </div>
+  <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
+}
+
+
+// init called below
+
+// ════════════════════════════════════════════════════════════════════
+// REVEAL SYSTEM v2 — ESC-Stil + Finale Reveals
+// No DB schema changes — reveal_state JSONB handles all new fields
+// ════════════════════════════════════════════════════════════════════
+
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+
+function calcCatTotals(katId){
+  const songs=appState.running_order||[];
+  const t={};
+  songs.forEach((_,i)=>t[i]=0);
+  allUsers.filter(u=>u.ballot).forEach(u=>{
+    Object.entries(u.ballot[katId]||{}).forEach(([si,pts])=>{ t[si]=(t[si]||0)+Number(pts); });
+  });
+  return t;
+}
+function calcGroupTotals(gruppe){
+  const songs=appState.running_order||[];
+  const t={};
+  songs.forEach((_,i)=>t[i]=0);
+  KATEGORIEN.filter(k=>k.gruppe===gruppe).forEach(k=>{
+    Object.entries(calcCatTotals(k.id)).forEach(([si,pts])=>{ t[si]=(t[si]||0)+pts; });
+  });
+  return t;
+}
+function topSongIdx(totals){ return Object.entries(totals).sort((a,b)=>b[1]-a[1])[0]; }
+
+async function hostStartReveal(){
+  if(!confirm("Ergebnisverkündung starten? Gäste sehen erst was du aufdeckst.")) return;
+  const escMode = appState.reveal_esc_mode||false;
+  const kats=getRevealKats();
+  const voterOrder=shuffle(allUsers.map(u=>u.id));
+  await saveState({reveal_state:{
+    active:true, phase:"kat",
+    katIdx:0, songIdx:-1,
+    escMode,
+    voterOrder, voterIdx:-1, step:-1,
+    finaleStep:0,
+  }});
+  activeNav="reveal"; render();
+}
+
+async function hostRevealNext(){
+  const rs=appState.reveal_state||{};
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+
+  if(rs.phase==="finale"){
+    if(rs.finaleStep<5) await saveState({reveal_state:{...rs,finaleStep:rs.finaleStep+1}});
+    else await saveState({reveal_state:{...rs,phase:"done"}});
+    render(); return;
+  }
+  if(rs.phase==="done") return;
+
+  if(rs.escMode){
+    if(rs.voterIdx===-1){
+      // kat header → first voter
+      await saveState({reveal_state:{...rs,voterIdx:0,step:0}});
+    } else if(rs.step===0){
+      await saveState({reveal_state:{...rs,step:1}});
+    } else if(rs.step===1){
+      await saveState({reveal_state:{...rs,step:2}});
+    } else if(rs.step===2){
+      await saveState({reveal_state:{...rs,step:3}});
+    } else {
+      // next voter or next kat
+      const nextVI=rs.voterIdx+1;
+      if(nextVI<(rs.voterOrder||[]).length){
+        await saveState({reveal_state:{...rs,voterIdx:nextVI,step:0}});
+      } else {
+        await advanceRevealKat(rs,kats,songs);
+      }
+    }
+  } else {
+    // aggregate
+    const catTotals=calcCatTotals(kats[rs.katIdx]?.id);
+    const sorted=Object.entries(catTotals).sort((a,b)=>a[1]-b[1]);
+    if(rs.songIdx<sorted.length-1){
+      await saveState({reveal_state:{...rs,songIdx:rs.songIdx+1}});
+    } else {
+      await advanceRevealKat(rs,kats,songs);
+    }
+  }
+  render();
+}
+
+async function advanceRevealKat(rs,kats,songs){
+  if(rs.katIdx<kats.length-1){
+    const newVO=shuffle(allUsers.map(u=>u.id));
+    await saveState({reveal_state:{...rs,katIdx:rs.katIdx+1,songIdx:-1,voterOrder:newVO,voterIdx:-1,step:-1}});
+  } else {
+    await saveState({reveal_state:{...rs,phase:"finale",finaleStep:0}});
+  }
+}
+
+async function hostEndReveal(){
+  await saveState({reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0}});
+  activeNav="results"; render();
+}
+
+// ── Reveal control panel (host) ───────────────────────────────────────────
+function buildRevealHostPanel(){
+  const rs=appState.reveal_state||{active:false};
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+  const isDone=rs.phase==="done";
+  const isFinale=rs.phase==="finale";
+
+  let statusText="Nicht aktiv";
+  let nextLabel="▶ NÄCHSTER SCHRITT";
+
+  if(rs.active&&!isDone){
+    if(isFinale){
+      const fl=rs.finaleStep||0;
+      const flLabels=["Lustig-Sieger bereit","Lustig-Sieger sichtbar","Ernst-Sieger bereit","Ernst-Sieger sichtbar","Gesamtsieger bereit","Gesamtsieger sichtbar"];
+      statusText="🏆 Finale — "+flLabels[fl];
+      const nxt=["▶ LUSTIG-SIEGER ANZEIGEN","▶ AUFDECKEN ✨","▶ ERNST-SIEGER ANZEIGEN","▶ AUFDECKEN ✨","▶ GESAMTSIEGER ANZEIGEN","▶ AUFDECKEN 🏆"];
+      nextLabel=nxt[fl]||"▶ FERTIG";
+    } else if(rs.escMode){
+      const kat=kats[rs.katIdx];
+      const voter=allUsers.find(u=>u.id===(rs.voterOrder||[])[rs.voterIdx]);
+      if(rs.voterIdx===-1){
+        statusText=`${kat?.emoji} ${kat?.label} — Kategorie-Header`;
+        nextLabel="▶ ERSTEN ABSTIMMENDEN EINBLENDEN";
+      } else {
+        const stepLabels=["Teilnehmer eingeblendet","Punkte 1–N sichtbar","Top-Punkt aufgedeckt","Zwischenstand"];
+        statusText=`${kat?.emoji} ${kat?.label} · ${voter?.nickname||"?"} (${rs.voterIdx+1}/${(rs.voterOrder||[]).length}) · ${stepLabels[rs.step]||""}`;
+        const nxtLabels=["▶ PUNKTE EINBLENDEN","▶ TOP-PUNKT AUFDECKEN 🥁","▶ ZWISCHENSTAND ZEIGEN","▶ NÄCHSTER ABSTIMMENDER"];
+        const isLastVoter=rs.voterIdx===(rs.voterOrder||[]).length-1;
+        nextLabel=(rs.step===3&&isLastVoter)?"▶ NÄCHSTE KATEGORIE":(nxtLabels[rs.step]||"▶ WEITER");
+      }
+    } else {
+      const kat=kats[rs.katIdx];
+      const catTotals=calcCatTotals(kat?.id||"E1");
+      const sorted=Object.entries(catTotals).sort((a,b)=>a[1]-b[1]);
+      const rem=sorted.length-(rs.songIdx+1);
+      statusText=`${kat?.emoji} ${kat?.label} · ${rs.songIdx+1}/${sorted.length} Songs`;
+      nextLabel=rs.songIdx<sorted.length-1?`▶ NÄCHSTEN SONG AUFDECKEN (${rem} übrig)`:"▶ NÄCHSTE KATEGORIE";
+    }
+  } else if(isDone){
+    statusText="✅ Alle Ergebnisse verkündet!";
+  }
+
+  return `<div class="card" style="margin-bottom:10px;border-color:rgba(255,201,71,.4)">
+    <div class="card-title" style="color:var(--gold)">🎭 Steuerung</div>
+    <div style="font-size:.78rem;color:var(--gray);margin-bottom:10px;line-height:1.5">${statusText}</div>
+    ${!isDone
+      ?`<button class="btn btn-gold" onclick="hostRevealNext()" style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:.08em">${nextLabel}</button>`
+      :`<div class="alert alert-gold">✅ Alle Ergebnisse verkündet!</div>`
+    }
+    <button class="btn btn-ghost" style="margin-top:6px" onclick="hostEndReveal()">Verkündung beenden</button>
+    <div style="font-size:.7rem;color:var(--gray);margin-top:8px;text-align:center">👁 Screenshare diesen Tab auf den TV — Gäste sehen die Ansicht unten live</div>
+  </div>`;
+}
+
+// ── Main reveal screen ────────────────────────────────────────────────────
+function buildRevealScreen(){
+  const rs=appState.reveal_state||{active:false};
+  if(!rs.active) return `<div class="card"><div style="text-align:center;padding:24px;color:var(--gray)">⏳ Bereit für die Verkündung…</div></div>`;
+  if(rs.phase==="done") return `<div class="card" style="padding:20px;text-align:center"><div style="font-size:2rem">🎉</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--gold);margin-top:8px">SHOW'S OVER!</div></div>`;
+  if(rs.phase==="finale") return buildFinaleScreen(rs);
+  return rs.escMode ? buildEscScreen(rs) : buildAggregateScreen(rs);
+}
+
+function buildKatHeader(kat,katIdx,katsLen,mode){
+  return `<div style="text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.78rem;letter-spacing:.2em;color:var(--gray)">KATEGORIE ${katIdx+1} / ${katsLen}${mode?" · "+mode:""}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,5vw,2.2rem);background:linear-gradient(135deg,var(--teal),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1;margin:5px 0">${kat.emoji} ${kat.label}</div>
+    <div style="font-size:.72rem;color:var(--gray)">${kat.desc}</div>
+  </div>`;
+}
+
+// ── ESC-Stil screen ───────────────────────────────────────────────────────
+function buildEscScreen(rs){
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+  const kat=kats[rs.katIdx]; if(!kat) return "";
+  const katHdr=buildKatHeader(kat,rs.katIdx,kats.length,"ESC-STIL");
+
+  if(rs.voterIdx===-1) return `<div class="card" style="padding:16px">${katHdr}
+    <div style="text-align:center;padding:20px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div>
+  </div>`;
+
+  const voter=allUsers.find(u=>u.id===(rs.voterOrder||[])[rs.voterIdx]);
+  if(!voter) return `<div class="card"><div style="color:var(--gray);padding:16px">?</div></div>`;
+
+  const voterPts=Object.entries(voter.ballot?.[kat.id]||{})
+    .map(([si,pts])=>({si:Number(si),pts:Number(pts),song:songs[Number(si)]?.title||"?"}))
+    .sort((a,b)=>a.pts-b.pts);
+  const topPt=voterPts[voterPts.length-1];
+  const lowPts=voterPts.slice(0,-1);
+  const maxPts=topPt?.pts||1;
+
+  const voterHdr=`<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface);border-radius:10px;margin-bottom:12px">
+    <div style="font-size:1.6rem">🎤</div>
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.05em">${voter.nickname}</div>
+      <div style="font-size:.72rem;color:var(--gray);margin-top:1px">Abstimmender ${rs.voterIdx+1} von ${(rs.voterOrder||[]).length}</div>
+    </div>
+  </div>`;
+
+  if(rs.step===0) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}
+    <div style="text-align:center;padding:14px 0;color:var(--gray);font-style:italic;font-size:.85rem">Die Punkte von ${voter.nickname}…</div>
+  </div>`;
+
+  const lowRows=lowPts.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;width:28px;text-align:center;color:var(--gray)">${p.pts}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.82rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.song}</div>
+      <div style="height:3px;border-radius:2px;margin-top:3px;background:var(--border);width:${(p.pts/maxPts)*100}%"></div>
+    </div>
+  </div>`).join("");
+
+  const topHidden=`<div style="text-align:center;padding:14px;background:rgba(255,201,71,.06);border:1px dashed rgba(255,201,71,.3);border-radius:10px;margin-top:8px;color:var(--gray);font-style:italic;font-size:.85rem">
+    und die <strong style="color:var(--gold)">${topPt?.pts} Punkte</strong> gehen an… 🥁
+  </div>`;
+
+  const topRevealed=`<div style="display:flex;align-items:center;gap:12px;padding:12px 10px;background:rgba(255,201,71,.06);border:1px solid rgba(255,201,71,.3);border-radius:12px;margin-top:8px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);width:42px;text-align:center;line-height:1">${topPt?.pts}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;font-size:.92rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topPt?.song}</div>
+      <div style="height:3px;border-radius:2px;margin-top:4px;background:linear-gradient(90deg,var(--gold),var(--pink));width:100%"></div>
+    </div>
+    <div style="font-size:1.3rem">✨</div>
+  </div>`;
+
+  if(rs.step===1) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}${lowRows}${topHidden}</div>`;
+  if(rs.step===2) return `<div class="card" style="padding:16px">${katHdr}${voterHdr}${lowRows}${topRevealed}</div>`;
+
+  // step 3: zwischenstand
+  const runTotals={};
+  songs.forEach((_,i)=>runTotals[i]=0);
+  for(let vi=0;vi<=rs.voterIdx;vi++){
+    const u=allUsers.find(u=>u.id===(rs.voterOrder||[])[vi]);
+    if(u) Object.entries(u.ballot?.[kat.id]||{}).forEach(([si,pts])=>{ runTotals[si]=(runTotals[si]||0)+Number(pts); });
+  }
+  const ranked=Object.entries(runTotals).map(([si,pts])=>({si:Number(si),pts,song:songs[si]?.title||"?"})).sort((a,b)=>b.pts-a.pts);
+  const maxR=ranked[0]?.pts||1;
+  const MEDALS_Z=["🥇","🥈","🥉","4.","5.","6.","7.","8."];
+  const remaining=(rs.voterOrder||[]).length-rs.voterIdx-1;
+  return `<div class="card" style="padding:16px">${katHdr}
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:.82rem;letter-spacing:.12em;color:var(--gray);margin-bottom:10px">
+      ZWISCHENSTAND NACH ${rs.voterIdx+1} / ${(rs.voterOrder||[]).length} ABSTIMMENDEN
+      ${remaining>0?`<span style="color:var(--gray);font-size:.7rem;font-family:'DM Sans',sans-serif;font-weight:400"> · noch ${remaining}</span>`:""}
+    </div>
+    ${ranked.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border)">
+      <div style="width:22px;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gray);text-align:center">${MEDALS_Z[i]||i+1+"."}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:${i===0?600:400};color:${i===0?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.song}</div>
+        <div style="height:3px;border-radius:2px;margin-top:3px;background:${i===0?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${(r.pts/maxR)*100}%"></div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:${i===0?"var(--teal)":"var(--gray)"}">${r.pts}</div>
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── Aggregate screen ──────────────────────────────────────────────────────
+function buildAggregateScreen(rs){
+  const kats=getRevealKats();
+  const songs=appState.running_order||[];
+  const kat=kats[rs.katIdx]; if(!kat) return "";
+  const catTotals=calcCatTotals(kat.id);
+  const sorted=Object.entries(catTotals).map(([si,pts])=>({si:Number(si),pts,song:songs[si]?.title||"?"})).sort((a,b)=>a.pts-b.pts);
+  const revealed=sorted.slice(sorted.length-Math.max(0,rs.songIdx+1));
+  const maxPts=sorted[sorted.length-1]?.pts||1;
+  const katHdr=buildKatHeader(kat,rs.katIdx,kats.length,"AGGREGAT");
+  if(rs.songIdx<0) return `<div class="card" style="padding:16px">${katHdr}<div style="text-align:center;padding:20px 0;color:var(--gray);font-style:italic;font-size:.85rem">Gleich geht's los…</div></div>`;
+  return `<div class="card" style="padding:16px">${katHdr}
+    ${revealed.map((r,i)=>{const isTop=i===0,pct=(r.pts/maxPts)*100;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="width:24px;text-align:center">${isTop?"✨":""}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:${isTop?600:400};font-size:${isTop?".9rem":".8rem"};color:${isTop?"var(--white)":"var(--gray)"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.song}</div>
+          <div style="height:3px;border-radius:2px;margin-top:3px;background:${isTop?"linear-gradient(90deg,var(--teal),var(--pink))":"var(--border)"};width:${pct}%"></div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:${isTop?"1.4rem":".9rem"};color:${isTop?"var(--gold)":"var(--gray)"}">${r.pts}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── Finale screen ─────────────────────────────────────────────────────────
+function buildFinaleScreen(rs){
+  const fl=rs.finaleStep||0;
+  const songs=appState.running_order||[];
+  const lustTotals=calcGroupTotals("lustig");
+  const ernstTotals=calcGroupTotals("ernst");
+  const allTotals={};
+  songs.forEach((_,i)=>allTotals[i]=0);
+  KATEGORIEN.forEach(k=>{ Object.entries(calcCatTotals(k.id)).forEach(([si,pts])=>{ allTotals[si]=(allTotals[si]||0)+pts; }); });
+
+  const [lustIdx,lustPts]=topSongIdx(lustTotals);
+  const [ernstIdx,ernstPts]=topSongIdx(ernstTotals);
+  const [allIdx,allPts]=topSongIdx(allTotals);
+
+  function hidden(label){
+    return `<div style="padding:20px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:14px;margin-bottom:12px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;color:var(--gray)">${label}</div>
+      <div style="font-size:2rem;margin-top:8px">🥁</div>
+    </div>`;
+  }
+  function winner(trophy,label,songName,pts,sub){
+    return `<div style="padding:20px;text-align:center;background:linear-gradient(135deg,rgba(255,201,71,.12),rgba(255,61,127,.08));border:1px solid rgba(255,201,71,.3);border-radius:14px;margin-bottom:12px">
+      <div style="font-size:2.4rem;margin-bottom:8px">${trophy}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.85rem;letter-spacing:.15em;color:var(--gray);text-transform:uppercase;margin-bottom:4px">${label}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,5vw,1.9rem);color:var(--gold);line-height:1.1">${songName}</div>
+      <div style="font-size:.8rem;color:var(--gray);margin-top:6px">${pts} Punkte${sub?" · "+sub:""}</div>
+    </div>`;
+  }
+
+  let blocks="";
+  // Lustig
+  if(fl>=1) blocks+=winner("😂","Sieger Lustig-Kategorien",songs[lustIdx]?.title||"?",lustPts,"L1–L4");
+  else blocks+=hidden("Sieger der Lustig-Kategorien");
+  // Ernst
+  if(fl>=2){
+    if(fl>=3) blocks+=winner("⭐","Sieger Ernst-Kategorien",songs[ernstIdx]?.title||"?",ernstPts,"E1–E4");
+    else blocks+=hidden("Sieger der Ernst-Kategorien");
+  }
+  // Overall
+  if(fl>=4){
+    if(fl>=5) blocks+=winner("🏆","Gesamtsieger",songs[allIdx]?.title||"?",allPts,"alle Kategorien");
+    else blocks+=hidden("Gesamtsieger");
+  }
+
+  return `<div class="card" style="padding:16px">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.8rem;letter-spacing:.2em;color:var(--gray)">FINALE</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,6vw,2.6rem);color:var(--gold);line-height:1.1;margin:4px 0">🏆 DIE GEWINNER</div>
+    </div>
+    ${blocks}
+  </div>`;
+}
+
+// Patch renderHostPanel to show reveal launch button
+const _origHP = renderHostPanel;
+renderHostPanel = function(){
+  const base = _origHP();
+  const rs = appState.reveal_state||{active:false};
+  const voteCount = allUsers.filter(u=>u.has_voted).length;
+  return base + (rs.active
+    ? `<div class="card" style="border-color:rgba(255,201,71,.4)"><div class="card-title" style="color:var(--gold)">🎭 Verkündung läuft</div><button class="btn btn-ghost" onclick="setNav('reveal');render()">Zur Steuerung →</button></div>`
+    : `<div class="card"><div class="card-title">🎭 Ergebnisverkündung</div><div class="info">Startet die dramatische Ergebnisverkündung. Modus und Kategorienreihenfolge oben in den Einstellungen konfigurierbar.</div><button class="btn btn-gold" onclick="hostStartReveal()" ${voteCount===0?"disabled":""} style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em">🎭 VERKÜNDUNG STARTEN</button></div>`
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// 🧪 TESTDATEN — nur im Test-Branch
+// ════════════════════════════════════════════════════════════════════
+const TD_SONGS=[
+  {title:"Total Eclipse of the Heart – Bonnie Tyler", youtube_url:"https://youtube.com/watch?v=lcOxhH8N3Bo"},
+  {title:"Africa – Toto",                             youtube_url:"https://youtube.com/watch?v=FTQbiNvZqaY"},
+  {title:"Never Gonna Give You Up – Rick Astley",     youtube_url:"https://youtube.com/watch?v=dQw4w9WgXcQ"},
+  {title:"Barbie Girl – Aqua",                        youtube_url:"https://youtube.com/watch?v=ZyhrYis509A"},
+  {title:"Mambo No. 5 – Lou Bega",                    youtube_url:"https://youtube.com/watch?v=EIEHPaL8PPk"},
+  {title:"Freed from Desire – Gala",                  youtube_url:"https://youtube.com/watch?v=CEMn4JtdMkQ"},
+  {title:"Dragostea Din Tei – O-Zone",                youtube_url:"https://youtube.com/watch?v=YnopHCL1Jk8"},
+  {title:"Cotton Eye Joe – Rednex",                   youtube_url:"https://youtube.com/watch?v=K4RmkMDmDyA"},
+];
+const TD_USERS=[
+  {nickname:"KlausFromMunich", song_idx:1, pref:[1,0,2,3]},
+  {nickname:"SabineRocks",     song_idx:0, pref:[0,2,4,6]},
+  {nickname:"DJ_Axel",         song_idx:7, pref:[7,5,3,1]},
+  {nickname:"IngridPop",       song_idx:3, pref:[3,6,0,5]},
+  {nickname:"MarcoBello",      song_idx:4, pref:[4,2,7,0]},
+  {nickname:"ElenaVibes",      song_idx:5, pref:[5,3,1,6]},
+  {nickname:"TomTranceMaster", song_idx:6, pref:[6,4,2,7]},
+  {nickname:"NinaStardust",    song_idx:2, pref:[2,0,5,3]},
+];
+
+function tdMakeBallot(pref){
+  const PTS=[12,10,8,6,5,4,3,1];
+  const b={};
+  KATEGORIEN.forEach((k,ki)=>{
+    b[k.id]={};
+    const order=[...Array(8).keys()].sort((a,c)=>{
+      const ia=pref.indexOf(a),ic=pref.indexOf(c);
+      if(ia>=0&&ic>=0)return ia-ic;
+      if(ia>=0)return -1;if(ic>=0)return 1;
+      return(a+ki*3)%8-(c+ki*3)%8;
+    });
+    order.forEach((si,rank)=>{b[k.id][si]=PTS[rank];});
+  });
+  return b;
+}
+
+async function tdLoadUsers(){
+  if(!confirm("⚠️ Alle bestehenden Nutzer löschen und 8 Demo-Nutzer anlegen?\n\nDies überschreibt alle vorhandenen Accounts!")) return;
+  showToast("Lade Testnutzer…");
+  // Delete all users first
+  await sb.from("esc_users").delete().neq("id",0);
+  // Insert demo users
+  const rows=TD_USERS.map((u,i)=>({
+    nickname:u.nickname,
+    nickname_lower:u.nickname.toLowerCase(),
+    pin_hash:hashPin("1234"),
+    song_title:null, youtube_url:null,
+    ballot:null, has_voted:false, predictions:null,
+  }));
+  const {error}=await sb.from("esc_users").insert(rows);
+  if(error){showToast("Fehler: "+error.message);return;}
+  await loadAll();
+  showToast("✅ 8 Testnutzer angelegt (PIN: 1234)");
+  render();
+}
+
+async function tdLoadSongs(){
+  if(!confirm("⚠️ Running Order mit 8 Demo-Songs überschreiben?")) return;
+  showToast("Lade Demo-Songs…");
+  // Assign songs to users by song_idx
+  for(const u of TD_USERS){
+    const song=TD_SONGS[u.song_idx];
+    await sb.from("esc_users")
+      .update({song_title:song.title, youtube_url:song.youtube_url})
+      .ilike("nickname_lower",u.nickname.toLowerCase());
+  }
+  // Set running order in state
+  await saveState({running_order:TD_SONGS});
+  await loadAll();
+  showToast("✅ Running Order mit 8 Songs gesetzt");
+  render();
+}
+
+async function tdLoadVotes(){
+  if(!confirm("⚠️ Alle 8 Nutzer mit Demo-Votes befüllen?\n\nBestehende Votes werden überschrieben!")) return;
+  showToast("Lade Demo-Votes…");
+  for(const u of TD_USERS){
+    const ballot=tdMakeBallot(u.pref);
+    await sb.from("esc_users")
+      .update({ballot:ballot, has_voted:true})
+      .ilike("nickname_lower",u.nickname.toLowerCase());
+  }
+  await loadAll();
+  showToast("✅ Votes für alle 8 Nutzer gesetzt");
+  render();
+}
+
+function renderTestData(){
+  const userCount=allUsers.length;
+  const songCount=allUsers.filter(u=>u.song_title).length;
+  const voteCount=allUsers.filter(u=>u.has_voted).length;
+  const hasRO=(appState.running_order||[]).length>0;
+
+  return`<div class="card" style="border-color:rgba(255,61,127,.3)">
+    <div class="card-title" style="color:var(--pink)">🧪 Testdaten</div>
+    <div class="info">Nur im Test-Branch verfügbar. Jede Aktion erfordert eine Bestätigung und überschreibt bestehende Daten.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 Schritt 1 — Nutzer anlegen</div>
+    <div class="info">Legt 8 Demo-Nutzer an (alle PIN: <strong>1234</strong>). Löscht alle bestehenden Accounts.</div>
+    <div class="stat-row"><span>Aktuelle Nutzer</span><span class="stat-val">${userCount}</span></div>
+    <button class="btn btn-pink" onclick="tdLoadUsers()">👥 8 Testnutzer anlegen</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎵 Schritt 2 — Songs setzen</div>
+    <div class="info">Weist jedem Nutzer einen Demo-Song zu und setzt die Running Order.</div>
+    <div class="stat-row"><span>Songs eingereicht</span><span class="stat-val">${songCount}</span></div>
+    <div class="stat-row"><span>Running Order</span><span class="stat-val">${hasRO?appState.running_order.length+" Songs":"—"}</span></div>
+    <button class="btn btn-teal" onclick="tdLoadSongs()" ${userCount===0?"disabled":""}>🎵 Demo-Songs setzen</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗳 Schritt 3 — Votes befüllen</div>
+    <div class="info">Befüllt alle 8 Nutzer mit vollständigen Demo-Votes. Benötigt Songs aus Schritt 2.</div>
+    <div class="stat-row"><span>Stimmen abgegeben</span><span class="stat-val">${voteCount} / ${userCount}</span></div>
+    <button class="btn btn-gold" onclick="tdLoadVotes()" ${songCount===0?"disabled":""}>🗳 Demo-Votes befüllen</button>
+  </div>`;
+}
+
+init();
+</script>
+</body>
+</html>
