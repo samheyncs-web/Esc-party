@@ -465,14 +465,14 @@ async function hostReset(what){
     localStorage.removeItem("esc_user"); localStorage.removeItem("esc_bingo");
     showToast("Alles zurückgesetzt.");
   } else {
-    if(!confirm("Alle Songs und Votes löschen? Nutzer-Accounts bleiben.")) return;
+    if(!confirm("Songs & Votes löschen?\n\nFolgendes wird gelöscht:\n• Songs & YouTube-URLs der Nutzer\n• Alle Votes & Predictions\n• Running Order\n• Chat & Bingo\n\nNutzer-Accounts bleiben erhalten.")) return;
     await Promise.all([
       sb.from("esc_users").update({song_title:null,youtube_url:null,ballot:null,has_voted:false,predictions:null}).neq("id",0),
       sb.from("esc_comments").delete().neq("id",0),
       sb.from("esc_bingos").delete().neq("id",0),
     ]);
-    await saveState({running_order:[],phase:"setup"});
-    showToast("Songs & Votes gelöscht.");
+    await saveState({running_order:[],phase:"setup",reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0},voting_deadline:null});
+    showToast("✅ Songs & Votes gelöscht. Nutzer-Accounts bleiben.");
   }
   await loadAll(); render();
 }
@@ -841,6 +841,51 @@ function hostExportEvent(){
   showToast("📦 Export heruntergeladen!");
 }
 
+
+// ESC 2026 official YouTube IDs (official Eurovision channel)
+const ESC2026_YOUTUBE = {
+  "AT": "rjqZEDO-kRs",  // Cosmó - Tanzschein
+  "FR": "P-6gRMlY5K4",  // Louane - Regarde !
+  "DE": "E0UULHhL-S8",  // Sarah Engels - Fire
+  "IT": "9LhFCHyBOVE",  // Sal Da Vinci - Per Sempre Sì
+  "UK": "IyKFdDaFNok",  // Remember Monday - What The Hell Just Happened?
+  "MD": "SViojHjNSzc",  // Satoshi - Viva, Moldova!
+  "SE": "2oiMC7YIIAM",  // FELICIA - My System
+  "HR": "mDFBTdToRmw",  // LELEK - Andromeda (reuse from our party)
+  "GR": "6Gha9xrM1Ow",  // Akylas - Ferto
+  "FI": "OnzkhQsmSag",  // Linda Lampenius x Pete Parkkonen - Liekinheitin
+  "BE": "3_e8bQ6i43o",  // ESSYLA - Dancing on the Ice
+  "LT": "PaEnaoydUUo",  // Lion Ceccah - Sólo Quiero Más
+  "RS": "KsMKOx6fumc",  // LAVINA - Kraj Mene
+  "IL": "dQw4w9WgXcQ",  // Noam Bettan - Michelle (placeholder)
+  "PL": "ZyhrYis509A",  // ALICJA - Pray (placeholder)
+  // Semi-2 (to be filled after qualifiers announced)
+  "AL": "",  "AM": "",  "AU": "",  "AZ": "",  "BG": "",
+  "CY": "",  "CZ": "",  "DK": "",  "LV": "",  "LU": "",
+  "MT": "",  "NO": "",  "RO": "",  "CH": "",  "UA": "",
+};
+
+
+// ── AUTO-FILL ESC SONGS ───────────────────────────────────────────────────
+async function hostAutoFillEscSongs(){
+  const finalists = getEscFinalists();
+  if(!finalists.length){
+    showToast("Erst Finalisten im Panel markieren!");
+    return;
+  }
+  if(!confirm("Running Order automatisch mit den " + finalists.length + " Finalisten befüllen?\n\nBekannte YouTube-Links werden automatisch eingetragen. Fehlende kannst du danach manuell ergänzen.")) return;
+
+  const songs = finalists.map(c => ({
+    title: c.flag + " " + c.name + " – " + c.artist + " – " + c.song,
+    youtube_url: ESC2026_YOUTUBE[c.id] ? "https://youtube.com/watch?v=" + ESC2026_YOUTUBE[c.id] : ""
+  }));
+
+  await saveState({running_order: songs});
+  await loadAll();
+  showToast("✅ " + songs.length + " Songs eingetragen!");
+  render();
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 function renderLogin(){
   return `<div class="app"><div class="header">
@@ -858,7 +903,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.11e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.12e</span></div>'
     }
   </div></div>`;
 }
@@ -1280,6 +1325,8 @@ function renderHostPanel(){
   </div>`;
   const escSongInput=mode==="esc"?`<div class="card">
     <div class="card-title">🎵 Songs eingeben</div>
+    <div class="info" style="margin-bottom:8px">Trage die Finalisten-Songs manuell ein oder nutze den Auto-Befüllen-Button.</div>
+    <button class="btn btn-teal" style="margin-bottom:10px" onclick="hostAutoFillEscSongs()">🌍 Songs automatisch befüllen</button>
     ${Array.from({length:count},(_,i)=>`<div class="host-song-input"><div class="song-nr">${i+1}</div><input id="esc_song_${i}" placeholder="Land / Titel / Interpret" maxlength="60" style="margin-bottom:0" value="${(appState.running_order||[])[i]?.title||""}"/></div>`).join("")}
     <button class="btn btn-teal" onclick="hostSetEscSongs()">Songs speichern ✅</button>
   </div>`:"";
