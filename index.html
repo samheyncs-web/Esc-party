@@ -328,7 +328,7 @@ const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,
 // ── App state ─────────────────────────────────────────────────────────────
 let sb, appState={visibility:{...DEFAULT_VIS},running_order:[],phase:"setup",mode:"party",song_count:8};
 let allUsers=[], allComments=[], allBingos=[];
-let currentUser=null, isHost=false, _showHostPw=false;
+let currentUser=null, isHost=false, _showHostPw=false, _confirmReset=false;
 let activeNav="info", activeKat=0, resultTab="gesamt";
 let _ballot=null, _editingVote=false;
 let _bingoCard=null, _bingoMarked=new Set();
@@ -465,7 +465,7 @@ async function hostReset(what){
     localStorage.removeItem("esc_user"); localStorage.removeItem("esc_bingo");
     showToast("Alles zurückgesetzt.");
   } else {
-    if(!confirm("Songs & Votes löschen?\n\nFolgendes wird gelöscht:\n• Songs & YouTube-URLs der Nutzer\n• Alle Votes & Predictions\n• Running Order\n• Chat & Bingo\n\nNutzer-Accounts bleiben erhalten.")) return;
+    // Direct reset - no confirm() on mobile
     await Promise.all([
       sb.from("esc_users").update({song_title:null,youtube_url:null,ballot:null,has_voted:false,predictions:null}).neq("id",0),
       sb.from("esc_comments").delete().neq("id",0),
@@ -873,8 +873,7 @@ async function hostAutoFillEscSongs(){
     showToast("Erst Finalisten im Panel markieren!");
     return;
   }
-  if(!confirm("Running Order automatisch mit den " + finalists.length + " Finalisten befüllen?\n\nBekannte YouTube-Links werden automatisch eingetragen. Fehlende kannst du danach manuell ergänzen.")) return;
-
+  // No confirm() - mobile browsers block it. Just do it directly.
   const songs = finalists.map(c => ({
     title: c.flag + " " + c.name + " – " + c.artist + " – " + c.song,
     youtube_url: ESC2026_YOUTUBE[c.id] ? "https://youtube.com/watch?v=" + ESC2026_YOUTUBE[c.id] : ""
@@ -903,7 +902,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.12e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.13e</span></div>'
     }
   </div></div>`;
 }
@@ -1387,7 +1386,14 @@ function renderHostPanel(){
     <div class="info">Speichert einen Snapshot aller Ergebnisse, Teilnehmer und Votes als JSON-Datei — ideal vor dem Reset.</div>
     <button class="btn btn-ghost" onclick="hostExportEvent()">📦 Ergebnisse exportieren</button>
   </div>
-  <div class="card"><div class="card-title">🔴 Reset</div><div class="btn-row"><button class="btn btn-ghost" onclick="hostReset('data')">Songs & Votes löschen</button><button class="btn btn-red" onclick="hostReset('all')">Alles zurücksetzen</button></div></div>`;
+  <div class="card">
+    <div class="card-title">🔴 Reset</div>
+    ${(()=>{
+      if(_confirmReset==='data') return '<div class="info" style="color:var(--red);margin-bottom:8px">⚠️ Songs, Votes, Running Order, Chat und Bingo werden gelöscht. Nutzer bleiben erhalten.</div><div class="btn-row"><button class="btn btn-red" onclick="hostReset(\'data\')">Ja, löschen</button><button class="btn btn-ghost" onclick="_confirmReset=false;render()">Abbrechen</button></div>';
+      if(_confirmReset==='all') return '<div class="info" style="color:var(--red);margin-bottom:8px">⚠️ ALLES wird gelöscht — alle Nutzer, Songs, Votes, Kommentare, Bingos.</div><div class="btn-row"><button class="btn btn-red" onclick="hostReset(\'all\')">Ja, ALLES löschen</button><button class="btn btn-ghost" onclick="_confirmReset=false;render()">Abbrechen</button></div>';
+      return '<div class="btn-row"><button class="btn btn-ghost" onclick="_confirmReset=\'data\';render()">Songs &amp; Votes löschen</button><button class="btn btn-red" onclick="_confirmReset=\'all\';render()">Alles zurücksetzen</button></div>';
+    })()}
+  </div>`;
 }
 
 
