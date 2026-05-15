@@ -278,44 +278,44 @@ const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","
 // ESC 2026 VIENNA — Alle 35 Länder
 // ════════════════════════════════════════════════════════════════════
 const ESC2026_ALL = [
-  // Auto-qualified (Big 4 + Host Austria)
-  {id:"AT",flag:"🇦🇹",name:"Österreich",   artist:"Cosmó",                          song:"Tanzschein",                    semi:null,autoQual:true},
-  {id:"FR",flag:"🇫🇷",name:"Frankreich",   artist:"Louane",                         song:"Regarde !",                     semi:null,autoQual:true},
-  {id:"DE",flag:"🇩🇪",name:"Deutschland",  artist:"Sarah Engels",                   song:"Fire",                          semi:null,autoQual:true},
-  {id:"IT",flag:"🇮🇹",name:"Italien",      artist:"Sal Da Vinci",                   song:"Per Sempre Sì",                 semi:null,autoQual:true},
-  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Remember Monday",       song:"What The Hell Just Happened?",  semi:null,autoQual:true},
-  // Semi-final 1 (12. Mai) — 15 Länder, 10 qualifizieren
-  {id:"MD",flag:"🇲🇩",name:"Moldawien",    artist:"Satoshi",                        song:"Viva, Moldova!",                semi:1,autoQual:false},
-  {id:"SE",flag:"🇸🇪",name:"Schweden",     artist:"FELICIA",                        song:"My System",                    semi:1,autoQual:false},
-  {id:"HR",flag:"🇭🇷",name:"Kroatien",     artist:"LELEK",                          song:"Andromeda",                     semi:1,autoQual:false},
-  {id:"GR",flag:"🇬🇷",name:"Griechenland", artist:"Akylas",                         song:"Ferto",                         semi:1,autoQual:false},
-  {id:"PT",flag:"🇵🇹",name:"Portugal",     artist:"Bandidos do Cante",              song:"Rosa",                          semi:1,autoQual:false},
-  {id:"GE",flag:"🇬🇪",name:"Georgien",     artist:"Bzikebi",                        song:"On Replay",                     semi:1,autoQual:false},
-  {id:"FI",flag:"🇫🇮",name:"Finnland",     artist:"Linda Lampenius x Pete Parkkonen",song:"Liekinheitin",                semi:1,autoQual:false},
-  {id:"ME",flag:"🇲🇪",name:"Montenegro",   artist:"Tamara Živković",                song:"Nova Zora",                     semi:1,autoQual:false},
-  {id:"EE",flag:"🇪🇪",name:"Estland",      artist:"Vanilla Ninja",                  song:"Too Epic To Be True",           semi:1,autoQual:false},
-  {id:"BE",flag:"🇧🇪",name:"Belgien",      artist:"ESSYLA",                         song:"Dancing on the Ice",            semi:1,autoQual:false},
-  {id:"LT",flag:"🇱🇹",name:"Litauen",      artist:"Lion Ceccah",                    song:"Sólo Quiero Más",               semi:1,autoQual:false},
-  {id:"SM",flag:"🇸🇲",name:"San Marino",   artist:"Senhit feat. Boy George",        song:"Superstar",                     semi:1,autoQual:false},
-  {id:"RS",flag:"🇷🇸",name:"Serbien",      artist:"LAVINA",                         song:"Kraj Mene",                     semi:1,autoQual:false},
-  {id:"IL",flag:"🇮🇱",name:"Israel",       artist:"Noam Bettan",                    song:"Michelle",                      semi:1,autoQual:false},
-  {id:"PL",flag:"🇵🇱",name:"Polen",        artist:"ALICJA",                         song:"Pray",                          semi:1,autoQual:false},
-  // Semi-final 2 (14. Mai) — 15 Länder, 10 qualifizieren
-  {id:"AL",flag:"🇦🇱",name:"Albanien",     artist:"Shkodra Elektronike",            song:"Nân",                           semi:2,autoQual:false},
-  {id:"AM",flag:"🇦🇲",name:"Armenien",     artist:"Parg",                           song:"Paloma Rumba",                  semi:2,autoQual:false},
-  {id:"AU",flag:"🇦🇺",name:"Australien",   artist:"Go-Jo",                          song:"Eclipse",                       semi:2,autoQual:false},
-  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Mamagama",                       song:"Just Go",                       semi:2,autoQual:false},
-  {id:"BG",flag:"🇧🇬",name:"Bulgarien",    artist:"Lian",                           song:"Bangaranga",                    semi:2,autoQual:false},
-  {id:"CY",flag:"🇨🇾",name:"Zypern",       artist:"Theo Evan",                      song:"JALLA",                         semi:2,autoQual:false},
-  {id:"CZ",flag:"🇨🇿",name:"Tschechien",   artist:"ADONXS",                         song:"CROSSROADS",                    semi:2,autoQual:false},
-  {id:"DK",flag:"🇩🇰",name:"Dänemark",     artist:"Sissal",                         song:"Før Vi Går Hjem",               semi:2,autoQual:false},
-  {id:"LV",flag:"🇱🇻",name:"Lettland",     artist:"Tautumeitas",                    song:"Ēnā",                           semi:2,autoQual:false},
-  {id:"LU",flag:"🇱🇺",name:"Luxemburg",    artist:"Eva Marija",                     song:"Mother Nature",                 semi:2,autoQual:false},
-  {id:"MT",flag:"🇲🇹",name:"Malta",        artist:"Miriana Conte",                  song:"Bella",                         semi:2,autoQual:false},
-  {id:"NO",flag:"🇳🇴",name:"Norwegen",     artist:"Kyle Alessandro",                song:"YA YA YA",                      semi:2,autoQual:false},
-  {id:"RO",flag:"🇷🇴",name:"Rumänien",     artist:"Claudiu Moga",                   song:"Choke Me",                      semi:2,autoQual:false},
-  {id:"CH",flag:"🇨🇭",name:"Schweiz",      artist:"Zoë",                            song:"Voyage",                        semi:2,autoQual:false},
-  {id:"UA",flag:"🇺🇦",name:"Ukraine",      artist:"Ziferblat",                      song:"Bird of Pray",                  semi:2,autoQual:false},
+  // ── Auto-qualifiziert (Big 4 + Gastgeber) ──────────────────────────────
+  {id:"AT",flag:"🇦🇹",name:"Österreich",            artist:"Cosmó",                 song:"Tanzschein",          semi:null,autoQual:true},
+  {id:"FR",flag:"🇫🇷",name:"Frankreich",            artist:"Monroe",                song:"Regarde !",           semi:null,autoQual:true},
+  {id:"DE",flag:"🇩🇪",name:"Deutschland",           artist:"Sarah Engels",          song:"Fire",                semi:null,autoQual:true},
+  {id:"IT",flag:"🇮🇹",name:"Italien",               artist:"Sal Da Vinci",          song:"Per Sempre Sì",       semi:null,autoQual:true},
+  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Look Mum No Computer", song:"Eins, Zwei, Drei",    semi:null,autoQual:true},
+  // ── Halbfinale 1 (12. Mai) — qualifiziert: MD SE HR GR FI BE LT RS IL PL ──
+  {id:"MD",flag:"🇲🇩",name:"Moldawien",   artist:"Satoshi",                         song:"Viva, Moldova!",         semi:1,autoQual:false},
+  {id:"SE",flag:"🇸🇪",name:"Schweden",    artist:"FELICIA",                         song:"My System",              semi:1,autoQual:false},
+  {id:"HR",flag:"🇭🇷",name:"Kroatien",    artist:"LELEK",                           song:"Andromeda",              semi:1,autoQual:false},
+  {id:"GR",flag:"🇬🇷",name:"Griechenland",artist:"Akylas",                          song:"Ferto",                  semi:1,autoQual:false},
+  {id:"FI",flag:"🇫🇮",name:"Finnland",    artist:"Linda Lampenius x Pete Parkkonen",song:"Liekinheitin",           semi:1,autoQual:false},
+  {id:"BE",flag:"🇧🇪",name:"Belgien",     artist:"ESSYLA",                          song:"Dancing on the Ice",     semi:1,autoQual:false},
+  {id:"LT",flag:"🇱🇹",name:"Litauen",     artist:"Katažyna",                        song:"Sólo Quiero Más",        semi:1,autoQual:false},
+  {id:"RS",flag:"🇷🇸",name:"Serbien",     artist:"LAVINA",                          song:"Kraj Mene",              semi:1,autoQual:false},
+  {id:"IL",flag:"🇮🇱",name:"Israel",      artist:"Noam Bettan",                     song:"Michelle",               semi:1,autoQual:false},
+  {id:"PL",flag:"🇵🇱",name:"Polen",       artist:"ALICJA",                          song:"Pray",                   semi:1,autoQual:false},
+  {id:"GE",flag:"🇬🇪",name:"Georgien",    artist:"Bzikebi",                         song:"On Replay",              semi:1,autoQual:false},
+  {id:"ME",flag:"🇲🇪",name:"Montenegro",  artist:"Tamara Živković",                 song:"Nova Zora",              semi:1,autoQual:false},
+  {id:"PT",flag:"🇵🇹",name:"Portugal",    artist:"Bandidos do Cante",               song:"Rosa",                   semi:1,autoQual:false},
+  {id:"SM",flag:"🇸🇲",name:"San Marino",  artist:"SENHIT feat. Boy George",         song:"Superstar",              semi:1,autoQual:false},
+  {id:"EE",flag:"🇪🇪",name:"Estland",     artist:"Vanilla Ninja",                   song:"Too Epic To Be True",    semi:1,autoQual:false},
+  // ── Halbfinale 2 (14. Mai) — qualifiziert: AL AU BG CY CZ DK MT NO RO UA ──
+  {id:"AL",flag:"🇦🇱",name:"Albanien",    artist:"Alis",                            song:"Nân",                    semi:2,autoQual:false},
+  {id:"AU",flag:"🇦🇺",name:"Australien",  artist:"Delta Goodrem",                   song:"Eclipse",                semi:2,autoQual:false},
+  {id:"BG",flag:"🇧🇬",name:"Bulgarien",   artist:"DARA",                            song:"Bangaranga",             semi:2,autoQual:false},
+  {id:"CY",flag:"🇨🇾",name:"Zypern",      artist:"Antigoni",                        song:"JALLA",                  semi:2,autoQual:false},
+  {id:"CZ",flag:"🇨🇿",name:"Tschechien",  artist:"Daniel Žižka",                   song:"CROSSROADS",             semi:2,autoQual:false},
+  {id:"DK",flag:"🇩🇰",name:"Dänemark",    artist:"Søren Torpegaard Lund",           song:"Før vi går hjem",        semi:2,autoQual:false},
+  {id:"MT",flag:"🇲🇹",name:"Malta",       artist:"AIDAN",                           song:"Bella",                  semi:2,autoQual:false},
+  {id:"NO",flag:"🇳🇴",name:"Norwegen",    artist:"JONAS LOVV",                      song:"Ya Ya Ya",               semi:2,autoQual:false},
+  {id:"RO",flag:"🇷🇴",name:"Rumänien",    artist:"Alexandra Căpitănescu",           song:"Choke Me",               semi:2,autoQual:false},
+  {id:"UA",flag:"🇺🇦",name:"Ukraine",     artist:"LELÉKA",                          song:"Ridnym",                 semi:2,autoQual:false},
+  {id:"AM",flag:"🇦🇲",name:"Armenien",    artist:"Simón",                           song:"Paloma Rumba",           semi:2,autoQual:false},
+  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Jiva",                           song:"Just Go",                semi:2,autoQual:false},
+  {id:"LU",flag:"🇱🇺",name:"Luxemburg",   artist:"Eva Marija",                      song:"Mother Nature",          semi:2,autoQual:false},
+  {id:"LV",flag:"🇱🇻",name:"Lettland",    artist:"Atvara",                          song:"Ēnā",                    semi:2,autoQual:false},
+  {id:"CH",flag:"🇨🇭",name:"Schweiz",     artist:"Veronica Fusaro",                 song:"Alice",                  semi:2,autoQual:false},
 ];
 
 // Semi-1 qualifiers (confirmed 12 Mai) — BE, HR, FI, GR, IL, LT, MD, PL, RS, SE
@@ -744,6 +744,13 @@ function render(){
 
 
 // ── ESC FINALIST MANAGER ──────────────────────────────────────────────────
+async function resetEscFinalistsToConfirmed(){
+  const confirmed = [...ESC2026_SEMI1_QUAL, ...ESC2026_SEMI2_QUAL];
+  await saveState({esc_finalists: confirmed});
+  showToast("✅ Finalisten auf bestätigte Semi-Qualifizierer zurückgesetzt");
+  render();
+}
+
 async function toggleEscFinalist(countryId){
   const current = appState.esc_finalists || [];
   const updated = current.includes(countryId) ? current.filter(id=>id!==countryId) : [...current, countryId];
@@ -761,6 +768,7 @@ function renderEscFinalistManager(){
   return `<div class="card">
     <div class="card-title">🏆 ESC 2026 Finalisten (${totalQ} / 25)</div>
     <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab. Jeweils <strong>10</strong> pro Semi.</div>
+    <button onclick="resetEscFinalistsToConfirmed()" style="border:none;border-radius:8px;padding:6px 12px;background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3);font-size:.75rem;font-weight:600;cursor:pointer;margin-bottom:8px;-webkit-tap-highlight-color:transparent">✅ Auf bestätigte Qualifizierer zurücksetzen</button>
     ${semi1Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 1: 10/10 qualifiziert</div>':(semi1Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 1: '+semi1Q+'/10 qualifiziert</div>':'')}    ${semi2Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 2: 10/10 qualifiziert</div>':(semi2Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 2: '+semi2Q+'/10 qualifiziert</div>':'')}    
     <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Halbfinale 1 (12. Mai)</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
@@ -901,7 +909,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.16e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.17e</span></div>'
     }
   </div></div>`;
 }
