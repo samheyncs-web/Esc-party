@@ -850,25 +850,34 @@ function hostExportEvent(){
 
 // ESC 2026 official YouTube IDs (official Eurovision channel)
 const ESC2026_YOUTUBE = {
-  "AT": "rjqZEDO-kRs",  // Cosmó - Tanzschein
-  "FR": "P-6gRMlY5K4",  // Louane - Regarde !
-  "DE": "E0UULHhL-S8",  // Sarah Engels - Fire
-  "IT": "9LhFCHyBOVE",  // Sal Da Vinci - Per Sempre Sì
-  "UK": "IyKFdDaFNok",  // Remember Monday - What The Hell Just Happened?
-  "MD": "SViojHjNSzc",  // Satoshi - Viva, Moldova!
-  "SE": "2oiMC7YIIAM",  // FELICIA - My System
-  "HR": "mDFBTdToRmw",  // LELEK - Andromeda (reuse from our party)
-  "GR": "6Gha9xrM1Ow",  // Akylas - Ferto
-  "FI": "OnzkhQsmSag",  // Linda Lampenius x Pete Parkkonen - Liekinheitin
-  "BE": "3_e8bQ6i43o",  // ESSYLA - Dancing on the Ice
-  "LT": "PaEnaoydUUo",  // Lion Ceccah - Sólo Quiero Más
-  "RS": "KsMKOx6fumc",  // LAVINA - Kraj Mene
-  "IL": "dQw4w9WgXcQ",  // Noam Bettan - Michelle (placeholder)
-  "PL": "ZyhrYis509A",  // ALICJA - Pray (placeholder)
-  // Semi-2 (to be filled after qualifiers announced)
-  "AL": "",  "AM": "",  "AU": "",  "AZ": "",  "BG": "",
-  "CY": "",  "CZ": "",  "DK": "",  "LV": "",  "LU": "",
-  "MT": "",  "NO": "",  "RO": "",  "CH": "",  "UA": "",
+  // Auto-qualifiziert
+  "AT": "zPGP9ZphxiY",  // Cosmó – Tanzschein ✅
+  "FR": "Pj2DTSLcNnI",  // Monroe – Regarde ! ✅
+  "DE": "AzvRc3eH_rA",  // Sarah Engels – Fire ✅
+  "IT": "V406FAGkhyQ",  // Sal Da Vinci – Per Sempre Sì ✅
+  "UK": "-hu6R3ZnOdY",  // Look Mum No Computer – Eins, Zwei, Drei ✅
+  // Semi-1 Qualifizierer
+  "MD": "SViojHjNSzc",  // Satoshi – Viva, Moldova! ✅
+  "SE": "ibbfS8iG450",  // FELICIA – My System ✅
+  "HR": "vl7Jqnw10sU",  // LELEK – Andromeda ✅
+  "GR": "NGwNTd_DA9s",  // Akylas – Ferto ✅
+  "FI": "9bfwNIYb96Q",  // Linda Lampenius – Liekinheitin ✅
+  "BE": "9sfI4g6DWTU",  // ESSYLA – Dancing on the Ice ✅
+  "LT": "0H-PXnbhG7A",  // Katažyna – Sólo Quiero Más ✅
+  "RS": "uyfdKvR1nJM",  // LAVINA – Kraj Mene (live) ✅
+  "IL": "xWCnWSoG8nI",  // Noam Bettan – Michelle ✅
+  "PL": "q78cnYIoF9Y",  // ALICJA – Pray ✅
+  // Semi-2 Qualifizierer
+  "AL": "Sfvb761EEcM",  // Alis – Nân ✅
+  "AU": "_08I6mjHSLA",  // Delta Goodrem – Eclipse ✅
+  "BG": "J3oGYo_mekw",  // DARA – Bangaranga ✅
+  "CY": "TzSs51BiQrE",  // Antigoni – JALLA ✅
+  "CZ": "6ea25aRGpLo",  // Daniel Žižka – CROSSROADS ✅
+  "DK": "lqXYe1SHNZA",  // Søren Torpegaard Lund – Før vi går hjem ✅
+  "MT": "CW6mQLBh6Js",  // AIDAN – Bella ✅
+  "NO": "pUjWzQ671MQ",  // JONAS LOVV – Ya Ya Ya ✅
+  "RO": "yn0YmI0dPb8",  // Alexandra Căpitănescu – Choke Me ✅
+  "UA": "OJ1x2aiL7ks",  // LELÉKA – Ridnym ✅
 };
 
 
@@ -910,7 +919,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.19e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.20e</span></div>'
     }
   </div></div>`;
 }
