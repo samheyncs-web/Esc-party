@@ -881,6 +881,14 @@ const ESC2026_YOUTUBE = {
 };
 
 
+// ESC 2026 Finale — Offizielle Running Order (16. Mai 2026)
+// Quelle: Wikipedia (de) Eurovision Song Contest 2026
+const ESC2026_RUNNING_ORDER = [
+  "DK","DE","IL","BE","AL","GR","UA","AU","RS","MT",
+  "CZ","BG","HR","UK","FR","MD","FI","PL","LT","SE",
+  "CY","IT","NO","RO","AT"
+];
+
 // ── AUTO-FILL ESC SONGS ───────────────────────────────────────────────────
 async function hostAutoFillEscSongs(){
   const finalists = getEscFinalists();
@@ -888,7 +896,16 @@ async function hostAutoFillEscSongs(){
     showToast("Erst Finalisten im Panel markieren!");
     return;
   }
-  const songs = finalists.map(c => ({
+  // Sort by official running order
+  const finalistIds = finalists.map(c=>c.id);
+  const ordered = ESC2026_RUNNING_ORDER
+    .filter(id => finalistIds.includes(id))
+    .map(id => ESC2026_ALL.find(c=>c.id===id))
+    .filter(Boolean);
+  // Append any finalists not in running order at end
+  finalists.forEach(c=>{ if(!ordered.find(o=>o.id===c.id)) ordered.push(c); });
+
+  const songs = ordered.map(c => ({
     title: c.flag + " " + c.name + " – " + c.artist + " – " + c.song,
     youtube_url: ESC2026_YOUTUBE[c.id] ? "https://youtube.com/watch?v=" + ESC2026_YOUTUBE[c.id] : ""
   }));
@@ -919,7 +936,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.20e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.21e</span></div>'
     }
   </div></div>`;
 }
