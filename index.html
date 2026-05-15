@@ -929,14 +929,15 @@ async function hostAutoFillEscSongs(){
 let _escLive = {}; // local edits before saving
 
 async function saveEscResult(countryId, field, value){
-  const current = appState.esc_results || {};
+  const current = JSON.parse(JSON.stringify(appState.esc_results || {}));
   const country = current[countryId] || {};
   country[field] = Number(value)||0;
-  country.total = (field==="jury" ? country.jury||0 : Number(value)||0)
-                + (field==="tele" ? country.tele||0 : Number(value)||0);
   if(field==="jury") country.total = (Number(value)||0) + (country.tele||0);
   if(field==="tele") country.total = (country.jury||0) + (Number(value)||0);
   current[countryId] = country;
+  // Update local state immediately so host sees it
+  appState = {...appState, esc_results: current};
+  // Save to DB — Realtime will push to guests
   await saveState({esc_results: current});
 }
 
@@ -1005,66 +1006,85 @@ function renderEscLiveHost(){
 function renderEscLiveGuest(){
   const finalists = getEscFinalists();
   const results = appState.esc_results || {};
-  if(!Object.keys(results).length)
-    return `<div class="card"><div class="info">Der Host trägt gerade die ESC-Punkte ein — halte drauf!</div></div>`;
+  const hasResults = Object.keys(results).length > 0;
 
-  // ESC ranking
-  const ranked = Object.entries(results)
-    .map(([id,r])=>({id,jury:r.jury||0,tele:r.tele||0,total:(r.jury||0)+(r.tele||0),c:finalists.find(f=>f.id===id)}))
-    .filter(r=>r.c&&r.total>0)
-    .sort((a,b)=>b.total-a.total);
+  if(!hasResults)
+    return `<div class="card"><div class="info" style="text-align:center;padding:20px">⏳ Der Host trägt gerade die ESC-Punkte ein — die Rangliste erscheint automatisch sobald Punkte da sind.</div></div>`;
 
-  // Party ranking (our votes scaled)
-  const {totals,songs} = calcResults ? calcResults() : {totals:{},songs:[]};
-  const partyRanked = Object.entries(totals)
-    .map(([idx,pts])=>({title:songs[Number(idx)]?.title||"?",pts:Number(pts)}))
-    .sort((a,b)=>b.pts-a.pts)
-    .slice(0,10);
+  // Build ranked arrays for ESC total, jury, tele
+  const escAll = finalists.map(c => {
+    const r = results[c.id]||{};
+    return {id:c.id, c, jury:r.jury||0, tele:r.tele||0, total:(r.jury||0)+(r.tele||0)};
+  }).filter(r => r.total > 0 || r.jury > 0 || r.tele > 0);
 
-  // Top-5 predictions comparison
-  const predCount = {};
-  allUsers.forEach(u=>{
-    const p=u.predictions||{};
-    ["top5_jury","top5_tv","top5_gesamt"].forEach(cat=>{
-      [1,2,3,4,5].forEach(i=>{
-        const v=p[cat+"_"+i];
-        if(v) predCount[v]=(predCount[v]||0)+(6-i); // weight: 1st=5pts, 5th=1pt
-      });
-    });
+  const byTotal = [...escAll].sort((a,b)=>b.total-a.total);
+  const byJury  = [...escAll].sort((a,b)=>b.jury-a.jury);
+  const byTele  = [...escAll].sort((a,b)=>b.tele-a.tele);
+
+  // Party votes: map song title → country id by matching running order
+  const {totals, songs} = calcResults ? calcResults() : {totals:{},songs:[]};
+  // Build partyPts by country id via running_order match
+  const partyPts = {};
+  finalists.forEach(c => {
+    const songIdx = songs.findIndex(s => s.title && s.title.includes(c.name));
+    if(songIdx >= 0 && totals[songIdx] !== undefined) {
+      partyPts[c.id] = Number(totals[songIdx]);
+    }
   });
-  const predRanked = Object.entries(predCount)
-    .map(([id,pts])=>({id,pts,c:finalists.find(f=>f.id===id)}))
-    .filter(r=>r.c)
-    .sort((a,b)=>b.pts-a.pts)
-    .slice(0,5);
+  const byParty = finalists
+    .filter(c => partyPts[c.id] !== undefined)
+    .sort((a,b) => (partyPts[b.id]||0) - (partyPts[a.id]||0));
 
-  return `<div class="card">
-    <div class="card-title">📊 ESC-Ergebnis (live)</div>
-    ${ranked.slice(0,10).map((r,i)=>`<div class="stat-row">
-      <span>${["🥇","🥈","🥉"][i]||i+1+"."} ${r.c.flag} ${r.c.name}</span>
-      <span class="stat-val" style="display:flex;gap:8px">
-        <span style="font-size:.7rem;color:var(--gray)">J:${r.jury}</span>
-        <span style="font-size:.7rem;color:var(--gray)">TV:${r.tele}</span>
-        <span style="color:var(--teal)">${r.total}</span>
-      </span>
-    </div>`).join("")}
-    ${ranked.length>10?`<div style="font-size:.72rem;color:var(--gray);text-align:center;margin-top:6px">+${ranked.length-10} weitere…</div>`:""}
-  </div>
-  ${partyRanked.length>0?`<div class="card">
-    <div class="card-title">🎉 Unser Party-Voting</div>
-    ${partyRanked.map((r,i)=>`<div class="stat-row">
-      <span>${["🥇","🥈","🥉"][i]||i+1+"."} ${r.title}</span>
-      <span class="stat-val">${r.pts}</span>
-    </div>`).join("")}
-  </div>`:""}
-  ${predRanked.length>0?`<div class="card">
-    <div class="card-title">🎯 Unsere Tipps — Favoriten</div>
-    <div class="info" style="margin-bottom:8px">Welche Länder wurden am häufigsten als Top 5 getippt?</div>
-    ${predRanked.map((r,i)=>`<div class="stat-row">
-      <span>${["🥇","🥈","🥉"][i]||i+1+"."} ${r.c.flag} ${r.c.name}</span>
-      <span class="stat-val">${r.pts}</span>
-    </div>`).join("")}
-  </div>`:""}`;
+  // Rank lookup helpers
+  const rankOf = (arr, id) => arr.findIndex(r=>(r.id||r.id)===id) + 1 || "—";
+
+  // Full comparison table — all 25 sorted by ESC total
+  const tableRows = byTotal.map((r, i) => {
+    const rankTotal = i+1;
+    const rankJury  = byJury.findIndex(x=>x.id===r.id)+1;
+    const rankTele  = byTele.findIndex(x=>x.id===r.id)+1;
+    const partyRank = byParty.findIndex(c=>c.id===r.id)+1;
+    const partyPt   = partyPts[r.id]||0;
+    const medal     = ["🥇","🥈","🥉"][i]||"";
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 4px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:var(--teal)">${medal||rankTotal}</td>
+      <td style="padding:5px 4px;font-size:.95rem">${r.c.flag}</td>
+      <td style="padding:5px 4px;font-size:.75rem;font-weight:600;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.c.name}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:var(--gray)">${r.jury||"—"}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:var(--gray)">${r.tele||"—"}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.8rem;font-weight:700;color:var(--teal)">${r.total}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:${partyPt>0?"var(--gold)":"var(--border)"}">${partyPt||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--gray)">${rankJury||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--gray)">${rankTele||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--teal)">${rankTotal}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:${partyRank>0?"var(--gold)":"var(--border)"}">${partyRank||"—"}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="card" style="padding:12px 8px">
+    <div class="card-title" style="margin-bottom:10px">📊 ESC-Ergebnis vs. Party-Voting</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">#</th>
+            <th style="padding:4px"></th>
+            <th style="padding:4px;text-align:left;font-size:.65rem;color:var(--gray);font-weight:600">Land</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gray);font-weight:600">Jury</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gray);font-weight:600">TV</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--teal);font-weight:600">∑</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gold);font-weight:600">Party</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">RJ</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">RTV</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--teal);font-weight:600">R∑</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gold);font-weight:600">RP</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:.62rem;color:var(--gray);margin-top:8px;text-align:right">RJ=Rang Jury · RTV=Rang Publikum · R∑=Rang Gesamt · RP=Rang Party</div>
+  </div>`;
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
@@ -1084,7 +1104,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.24e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.26e</span></div>'
     }
   </div></div>`;
 }
