@@ -695,7 +695,7 @@ function render(){
     if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
     if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
     if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
-    if(mode==="esc"&&appState.esc_results&&Object.keys(appState.esc_results||{}).length>0) navItems.push({id:"esclive",label:"📊 Ergebnis"});
+    if(mode==="esc") navItems.push({id:"esclive",label:"📊 Ergebnis"});
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
@@ -1084,7 +1084,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.23e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.24e</span></div>'
     }
   </div></div>`;
 }
