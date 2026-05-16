@@ -1390,7 +1390,14 @@ function renderBingo(){
   return `${bingoAnnounce}
   ${hasBingo?`<div class="alert alert-gold">🎯 BINGO! Du hast eine vollständige Reihe!</div>`:""}
   <div class="bingo-grid">${cells}</div>
-  <button class="btn btn-ghost" onclick="if(confirm('Neue Karte generieren?')){_bingoCard=null;_bingoMarked=new Set();localStorage.removeItem('esc_bingo');render();}">Neue Karte</button>`;
+`;
+}
+
+async function hostResetBingo(){
+  await sb.from("esc_bingos").delete().neq("id",0);
+  await loadAll();
+  showToast("✅ Bingo-Rufe zurückgesetzt");
+  render();
 }
 
 function renderBingoAdmin(){
@@ -1409,7 +1416,8 @@ function renderBingoAdmin(){
         </div>`).join("")}`
     }
   </div>
-  <div class="info">Das Bingo läuft bei den Gästen lokal — kein Sync der einzelnen Karten. Nur der Bingo-Ruf wird allen angezeigt.</div>`;
+  <div class="info">Das Bingo läuft bei den Gästen lokal — kein Sync der einzelnen Karten. Nur der Bingo-Ruf wird allen angezeigt.</div>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="hostResetBingo()">🔄 Bingo-Rufe zurücksetzen</button>`;
 }
 
 // ── COMMENTS ──────────────────────────────────────────────────────────────
