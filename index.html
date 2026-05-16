@@ -472,9 +472,10 @@ async function hostReset(what){
       sb.from("esc_comments").delete().neq("id",0),
       sb.from("esc_bingos").delete().neq("id",0),
     ]);
-    await saveState({running_order:[],phase:"setup",reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0},voting_deadline:null});
-    // Force local state clear immediately
-    appState = {...appState, running_order:[], phase:"setup", voting_deadline:null};
+    // Explicitly clear running_order in DB with direct update
+    await sb.from("esc_state").update({running_order: [], reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0}, voting_deadline: null, phase:"setup"}).eq("id",1);
+    // Force local state clear
+    appState = {...appState, running_order:[], phase:"setup", voting_deadline:null, reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0}};
     _roPending = null;
     showToast("✅ Songs & Votes gelöscht. Nutzer-Accounts bleiben.");
   }
