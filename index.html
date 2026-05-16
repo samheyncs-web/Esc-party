@@ -551,7 +551,8 @@ function checkBingo(){
   if(hasBingo && currentUser){
     const already=allBingos.find(b=>b.nickname===currentUser.nickname);
     if(!already){
-      sb.from("esc_bingos").insert({nickname:currentUser.nickname,created_at:new Date().toISOString()});
+      sb.from("esc_bingos").insert({nickname:currentUser.nickname,created_at:new Date().toISOString()})
+        .then(()=>{ loadAll().then(()=>render()); });
     }
   }
   return hasBingo;
@@ -694,7 +695,7 @@ function render(){
     if(vis.predictions) navItems.push({id:"pred",label:"🎯 Tipps"});
     if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
     if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
-    if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
+    if(mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
     if(mode==="esc") navItems.push({id:"esclive",label:"📊 Ergebnis"});
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
@@ -1448,12 +1449,14 @@ function renderPredictions(){
   const vis=appState.visibility;
   if(!vis.predictions) return `<div class="card"><div class="info-locked">🔒 Predictions sind noch nicht geöffnet.</div></div>`;
   const saved=currentUser?.predictions||{};
-  const rows=PREDICTIONS.map(p=>`<div class="pred-row">
-    <div class="pred-label">${p.label}</div>
-    <input class="pred-input" placeholder="${p.placeholder}" maxlength="60"
-      value="${(_predictions[p.id]||saved[p.id]||"").replace(/"/g,"&quot;")}"
-      oninput="_predictions['${p.id}']=this.value"/>
-  </div>`).join("");
+  const _finalists=getMode()==="esc"?getEscFinalists():[];
+  const rows=PREDICTIONS.map(p=>{
+    const val=_predictions[p.id]||saved[p.id]||"";
+    const input=(p.type==="dropdown"&&_finalists.length>0)
+      ? '<select onchange="_predictions[\''+p.id+'\''+']=this.value" style="width:100%;padding:8px 10px;background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:8px;font-size:.83rem;margin-top:4px"><option value="">— Land wählen —</option>'+_finalists.map(c=>'<option value="'+c.id+'" '+(val===c.id?'selected':'')+'>'+c.flag+' '+c.name+' – '+c.artist+'</option>').join('')+'</select>'
+      : '<input class="pred-input" placeholder="'+(p.placeholder||'')+'" maxlength="60" value="'+val.replace(/"/g,"&quot;")+'" oninput="_predictions[\''+p.id+'\''+']=this.value"/>';
+    return '<div class="pred-row"><div class="pred-label">'+p.label+'</div>'+input+'</div>';
+  }).join("");
   const hasSaved=Object.keys(saved).length>0;
   const isEsc=getMode()==="esc";
   return `<div class="card">
