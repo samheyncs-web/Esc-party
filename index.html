@@ -473,9 +473,12 @@ async function hostReset(what){
       sb.from("esc_bingos").delete().neq("id",0),
     ]);
     await saveState({running_order:[],phase:"setup",reveal_state:{active:false,katIdx:0,songIdx:-1,phase:"kat",finaleStep:0},voting_deadline:null});
+    // Force local state clear immediately
+    appState = {...appState, running_order:[], phase:"setup", voting_deadline:null};
+    _roPending = null;
     showToast("✅ Songs & Votes gelöscht. Nutzer-Accounts bleiben.");
   }
-  await loadAll(); render();
+  await loadAll(); _confirmReset=false; render();
 }
 
 // ── User actions ──────────────────────────────────────────────────────────
