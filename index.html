@@ -699,7 +699,7 @@ function render(){
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"esclive",label:"📊 ESC Live"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🎯 Tipps"},{id:"testdata",label:"🧪 Testdaten"}];
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:getMode()==="esc"?"🎯 Tipps-Auswertung":"🎭 Verkünden"},{id:"esclive",label:"📊 ESC Live"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🎯 Tipps"},{id:"testdata",label:"🧪 Testdaten"}];
   }
   if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
   const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
@@ -710,7 +710,10 @@ function render(){
     if(activeNav==="panel")   content=renderHostPanel();
     if(activeNav==="order")   content=renderRunningOrder(true);
     if(activeNav==="results") content=renderResults();
-    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
+    if(activeNav==="reveal"){
+      if(getMode()==="esc") content=renderPredictionsAdmin();
+      else content=buildRevealHostPanel()+buildRevealScreen();
+    }
     if(activeNav==="bingo")   content=renderBingoAdmin();
     if(activeNav==="pred")    content=renderPredictionsAdmin();
     if(activeNav==="esclive")  content=renderEscLiveHost();
@@ -1104,7 +1107,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.26e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.27e</span></div>'
     }
   </div></div>`;
 }
@@ -1474,11 +1477,111 @@ function renderPredictions(){
 
 function renderPredictionsAdmin(){
   const withPreds=allUsers.filter(u=>u.predictions&&Object.keys(u.predictions).length>0);
-  if(!withPreds.length) return `<div class="card"><div class="info">Noch keine Predictions eingegangen.</div></div>`;
-  return withPreds.map(u=>`<div class="card">
-    <div class="card-title" style="color:var(--gold)">${u.nickname}</div>
-    ${PREDICTIONS.map(p=>`<div class="stat-row"><span style="font-size:.78rem;color:var(--gray)">${p.label}</span><span style="font-size:.82rem;font-weight:600">${u.predictions[p.id]||"—"}</span></div>`).join("")}
+  if(!withPreds.length) return `<div class="card"><div class="info">Noch keine Tipps eingegangen.</div></div>`;
+
+  const mode=getMode();
+  if(mode!=="esc") {
+    // Party mode: show raw predictions
+    return withPreds.map(u=>`<div class="card">
+      <div class="card-title" style="color:var(--gold)">${u.nickname}</div>
+      ${PREDICTIONS.map(p=>`<div class="stat-row"><span style="font-size:.78rem;color:var(--gray)">${p.label}</span><span style="font-size:.82rem;font-weight:600">${u.predictions[p.id]||"—"}</span></div>`).join("")}
+    </div>`).join("");
+  }
+
+  // ESC mode: evaluate predictions against actual results
+  const results = appState.esc_results || {};
+  const finalists = getEscFinalists();
+  const hasResults = Object.keys(results).length > 0;
+
+  // Build actual top-5 for jury, tele, total
+  const escSorted = (field) => finalists
+    .map(c=>({id:c.id,pts:(results[c.id]||{})[field]||0}))
+    .filter(r=>r.pts>0)
+    .sort((a,b)=>b.pts-a.pts)
+    .slice(0,5)
+    .map(r=>r.id);
+
+  const actualJury   = escSorted("jury");
+  const actualTele   = escSorted("tele");
+  const actualTotal  = escSorted("total")||escSorted("jury").map((id,i)=>{
+    // fallback: compute total
+    return finalists.map(c=>({id:c.id,total:(results[c.id]?.jury||0)+(results[c.id]?.tele||0)}))
+      .sort((a,b)=>b.total-a.total).slice(0,5).map(r=>r.id);
+  })[0];
+  const winner = actualTotal[0]||null;
+
+  // Score each user
+  const scored = withPreds.map(u=>{
+    const p = u.predictions||{};
+    let score = 0;
+    const details = [];
+
+    // Winner
+    const theirWinner = finalists.find(c=>c.name.toLowerCase().includes((p.winner||"").toLowerCase()))?.id
+      || (p.winner||"").toUpperCase();
+    const winnerHit = winner && (theirWinner===winner || p.winner===winner);
+    if(winnerHit){ score+=5; details.push("🏆 Sieger richtig: +5"); }
+
+    // Top-5 hits
+    const checkTop5 = (cat, actual, label) => {
+      let hits=0;
+      [1,2,3,4,5].forEach(i=>{
+        const v=p[cat+"_"+i];
+        if(v && actual.includes(v)){ hits++; score+=2; }
+      });
+      if(hits>0) details.push(`${label}: ${hits}/5 Treffer (+${hits*2})`);
+    };
+    if(hasResults){
+      checkTop5("top5_jury", actualJury, "⚖️ Jury");
+      checkTop5("top5_tv",   actualTele, "📺 TV");
+      checkTop5("top5_gesamt", actualTotal.length?actualTotal:actualJury, "🏆 Gesamt");
+    }
+
+    // Exact position bonus
+    if(hasResults && actualTotal.length){
+      [1,2,3,4,5].forEach(i=>{
+        if(p["top5_gesamt_"+i] === actualTotal[i-1]){ score+=3; details.push(`🎯 Pos ${i} exakt: +3`); }
+      });
+    }
+
+    return {u, score, details, winnerHit};
+  }).sort((a,b)=>b.score-a.score);
+
+  // Leaderboard
+  const leaderboard = scored.map((s,i)=>`<div class="stat-row" style="${i===0?"background:rgba(255,201,71,.08);border-radius:8px;padding:4px 8px":""}">
+    <span style="font-weight:600">${["🥇","🥈","🥉"][i]||i+1+"."} ${s.u.nickname}${s.winnerHit?" 🎯":""}</span>
+    <span class="stat-val" style="color:var(--gold)">${s.score} Pkt</span>
   </div>`).join("");
+
+  // Detail cards
+  const details = scored.map(s=>`<div class="card">
+    <div class="card-title" style="color:var(--gold);display:flex;justify-content:space-between">
+      <span>${s.u.nickname}</span><span>${s.score} Pkt</span>
+    </div>
+    ${s.details.length?s.details.map(d=>`<div style="font-size:.75rem;color:var(--teal);margin-bottom:3px">✓ ${d}</div>`).join("")
+      :`<div style="font-size:.75rem;color:var(--gray)">Keine Treffer</div>`}
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+      ${PREDICTIONS.map(p_=>`<div class="stat-row"><span style="font-size:.73rem;color:var(--gray)">${p_.label}</span><span style="font-size:.78rem">${s.u.predictions[p_.id]||"—"}</span></div>`).join("")}
+      ${["jury","tv","gesamt"].map(cat=>{
+        const vals=[1,2,3,4,5].map(i=>{
+          const id=s.u.predictions["top5_"+cat+"_"+i];
+          const c=finalists.find(f=>f.id===id);
+          return c?c.flag+" "+c.name:"—";
+        });
+        const labels={"jury":"⚖️ Jury","tv":"📺 TV","gesamt":"🏆 Gesamt"};
+        return `<div style="margin-top:5px"><div style="font-size:.7rem;color:var(--gray);font-weight:600;margin-bottom:3px">${labels[cat]} Top 5</div>
+        <div style="font-size:.75rem">${vals.join(" · ")}</div></div>`;
+      }).join("")}
+    </div>
+  </div>`).join("");
+
+  return `<div class="card">
+    <div class="card-title">🎯 Tipp-Auswertung</div>
+    ${!hasResults?`<div class="alert alert-gold">⚠️ Noch keine ESC-Ergebnisse eingetragen — Punkte werden berechnet sobald der Host Daten eingibt.</div>`:""}
+    <div style="font-size:.72rem;color:var(--gray);margin-bottom:10px">Wertung: Sieger richtig +5 · Top-5 Treffer +2 · Exakte Position +3</div>
+    ${leaderboard}
+  </div>
+  ${details}`;
 }
 
 // ── DRINKING GAME ─────────────────────────────────────────────────────────
