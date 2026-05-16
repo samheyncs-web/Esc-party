@@ -193,9 +193,9 @@ textarea{resize:none;min-height:60px}
 <body>
 <div id="root"><div class="spinner">⚙️ Verbinde…</div></div>
 <script>
-const SUPABASE_URL      = "https://exielmctdbfwpyyusdhq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4aWVsbWN0ZGJmd3B5eXVzZGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDI0MzgsImV4cCI6MjA5MzcxODQzOH0.xvExZzS9EZAcsRa5HZkldcMvdDGlk0BNWgM7dfNmuSw";
-const HOST_PASSWORD     = "esctest2025";
+const SUPABASE_URL      = "https://ysbkkrvkhoukbvsozili.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzYmtrcnZraG91a2J2c296aWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDk2NTMsImV4cCI6MjA5MzU4NTY1M30.p5N8dZU1FqXcuce90FQGsfpUiw61c85D6SfBZ-h0Rx0";
+const HOST_PASSWORD     = "eschost2025";
 
 // ── Kategorien ────────────────────────────────────────────────────────────
 const KATEGORIEN = [
@@ -278,49 +278,50 @@ const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","
 // ESC 2026 VIENNA — Alle 35 Länder
 // ════════════════════════════════════════════════════════════════════
 const ESC2026_ALL = [
-  // Auto-qualified (Big 4 + Host Austria)
-  {id:"AT",flag:"🇦🇹",name:"Österreich",   artist:"Cosmó",                          song:"Tanzschein",                    semi:null,autoQual:true},
-  {id:"FR",flag:"🇫🇷",name:"Frankreich",   artist:"Louane",                         song:"Regarde !",                     semi:null,autoQual:true},
-  {id:"DE",flag:"🇩🇪",name:"Deutschland",  artist:"Sarah Engels",                   song:"Fire",                          semi:null,autoQual:true},
-  {id:"IT",flag:"🇮🇹",name:"Italien",      artist:"Sal Da Vinci",                   song:"Per Sempre Sì",                 semi:null,autoQual:true},
-  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Remember Monday",       song:"What The Hell Just Happened?",  semi:null,autoQual:true},
-  // Semi-final 1 (12. Mai) — 15 Länder, 10 qualifizieren
-  {id:"MD",flag:"🇲🇩",name:"Moldawien",    artist:"Satoshi",                        song:"Viva, Moldova!",                semi:1,autoQual:false},
-  {id:"SE",flag:"🇸🇪",name:"Schweden",     artist:"FELICIA",                        song:"My System",                    semi:1,autoQual:false},
-  {id:"HR",flag:"🇭🇷",name:"Kroatien",     artist:"LELEK",                          song:"Andromeda",                     semi:1,autoQual:false},
-  {id:"GR",flag:"🇬🇷",name:"Griechenland", artist:"Akylas",                         song:"Ferto",                         semi:1,autoQual:false},
-  {id:"PT",flag:"🇵🇹",name:"Portugal",     artist:"Bandidos do Cante",              song:"Rosa",                          semi:1,autoQual:false},
-  {id:"GE",flag:"🇬🇪",name:"Georgien",     artist:"Bzikebi",                        song:"On Replay",                     semi:1,autoQual:false},
-  {id:"FI",flag:"🇫🇮",name:"Finnland",     artist:"Linda Lampenius x Pete Parkkonen",song:"Liekinheitin",                semi:1,autoQual:false},
-  {id:"ME",flag:"🇲🇪",name:"Montenegro",   artist:"Tamara Živković",                song:"Nova Zora",                     semi:1,autoQual:false},
-  {id:"EE",flag:"🇪🇪",name:"Estland",      artist:"Vanilla Ninja",                  song:"Too Epic To Be True",           semi:1,autoQual:false},
-  {id:"BE",flag:"🇧🇪",name:"Belgien",      artist:"ESSYLA",                         song:"Dancing on the Ice",            semi:1,autoQual:false},
-  {id:"LT",flag:"🇱🇹",name:"Litauen",      artist:"Lion Ceccah",                    song:"Sólo Quiero Más",               semi:1,autoQual:false},
-  {id:"SM",flag:"🇸🇲",name:"San Marino",   artist:"Senhit feat. Boy George",        song:"Superstar",                     semi:1,autoQual:false},
-  {id:"RS",flag:"🇷🇸",name:"Serbien",      artist:"LAVINA",                         song:"Kraj Mene",                     semi:1,autoQual:false},
-  {id:"IL",flag:"🇮🇱",name:"Israel",       artist:"Noam Bettan",                    song:"Michelle",                      semi:1,autoQual:false},
-  {id:"PL",flag:"🇵🇱",name:"Polen",        artist:"ALICJA",                         song:"Pray",                          semi:1,autoQual:false},
-  // Semi-final 2 (14. Mai) — 15 Länder, 10 qualifizieren
-  {id:"AL",flag:"🇦🇱",name:"Albanien",     artist:"Shkodra Elektronike",            song:"Nân",                           semi:2,autoQual:false},
-  {id:"AM",flag:"🇦🇲",name:"Armenien",     artist:"Parg",                           song:"Paloma Rumba",                  semi:2,autoQual:false},
-  {id:"AU",flag:"🇦🇺",name:"Australien",   artist:"Go-Jo",                          song:"Eclipse",                       semi:2,autoQual:false},
-  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Mamagama",                       song:"Just Go",                       semi:2,autoQual:false},
-  {id:"BG",flag:"🇧🇬",name:"Bulgarien",    artist:"Lian",                           song:"Bangaranga",                    semi:2,autoQual:false},
-  {id:"CY",flag:"🇨🇾",name:"Zypern",       artist:"Theo Evan",                      song:"JALLA",                         semi:2,autoQual:false},
-  {id:"CZ",flag:"🇨🇿",name:"Tschechien",   artist:"ADONXS",                         song:"CROSSROADS",                    semi:2,autoQual:false},
-  {id:"DK",flag:"🇩🇰",name:"Dänemark",     artist:"Sissal",                         song:"Før Vi Går Hjem",               semi:2,autoQual:false},
-  {id:"LV",flag:"🇱🇻",name:"Lettland",     artist:"Tautumeitas",                    song:"Ēnā",                           semi:2,autoQual:false},
-  {id:"LU",flag:"🇱🇺",name:"Luxemburg",    artist:"Eva Marija",                     song:"Mother Nature",                 semi:2,autoQual:false},
-  {id:"MT",flag:"🇲🇹",name:"Malta",        artist:"Miriana Conte",                  song:"Bella",                         semi:2,autoQual:false},
-  {id:"NO",flag:"🇳🇴",name:"Norwegen",     artist:"Kyle Alessandro",                song:"YA YA YA",                      semi:2,autoQual:false},
-  {id:"RO",flag:"🇷🇴",name:"Rumänien",     artist:"Claudiu Moga",                   song:"Choke Me",                      semi:2,autoQual:false},
-  {id:"CH",flag:"🇨🇭",name:"Schweiz",      artist:"Zoë",                            song:"Voyage",                        semi:2,autoQual:false},
-  {id:"UA",flag:"🇺🇦",name:"Ukraine",      artist:"Ziferblat",                      song:"Bird of Pray",                  semi:2,autoQual:false},
+  // ── Auto-qualifiziert (Big 4 + Gastgeber) ──────────────────────────────
+  {id:"AT",flag:"🇦🇹",name:"Österreich",            artist:"Cosmó",                 song:"Tanzschein",          semi:null,autoQual:true},
+  {id:"FR",flag:"🇫🇷",name:"Frankreich",            artist:"Monroe",                song:"Regarde !",           semi:null,autoQual:true},
+  {id:"DE",flag:"🇩🇪",name:"Deutschland",           artist:"Sarah Engels",          song:"Fire",                semi:null,autoQual:true},
+  {id:"IT",flag:"🇮🇹",name:"Italien",               artist:"Sal Da Vinci",          song:"Per Sempre Sì",       semi:null,autoQual:true},
+  {id:"UK",flag:"🇬🇧",name:"Vereinigtes Königreich",artist:"Look Mum No Computer", song:"Eins, Zwei, Drei",    semi:null,autoQual:true},
+  // ── Halbfinale 1 (12. Mai) — qualifiziert: MD SE HR GR FI BE LT RS IL PL ──
+  {id:"MD",flag:"🇲🇩",name:"Moldawien",   artist:"Satoshi",                         song:"Viva, Moldova!",         semi:1,autoQual:false},
+  {id:"SE",flag:"🇸🇪",name:"Schweden",    artist:"FELICIA",                         song:"My System",              semi:1,autoQual:false},
+  {id:"HR",flag:"🇭🇷",name:"Kroatien",    artist:"LELEK",                           song:"Andromeda",              semi:1,autoQual:false},
+  {id:"GR",flag:"🇬🇷",name:"Griechenland",artist:"Akylas",                          song:"Ferto",                  semi:1,autoQual:false},
+  {id:"FI",flag:"🇫🇮",name:"Finnland",    artist:"Linda Lampenius x Pete Parkkonen",song:"Liekinheitin",           semi:1,autoQual:false},
+  {id:"BE",flag:"🇧🇪",name:"Belgien",     artist:"ESSYLA",                          song:"Dancing on the Ice",     semi:1,autoQual:false},
+  {id:"LT",flag:"🇱🇹",name:"Litauen",     artist:"Katažyna",                        song:"Sólo Quiero Más",        semi:1,autoQual:false},
+  {id:"RS",flag:"🇷🇸",name:"Serbien",     artist:"LAVINA",                          song:"Kraj Mene",              semi:1,autoQual:false},
+  {id:"IL",flag:"🇮🇱",name:"Israel",      artist:"Noam Bettan",                     song:"Michelle",               semi:1,autoQual:false},
+  {id:"PL",flag:"🇵🇱",name:"Polen",       artist:"ALICJA",                          song:"Pray",                   semi:1,autoQual:false},
+  {id:"GE",flag:"🇬🇪",name:"Georgien",    artist:"Bzikebi",                         song:"On Replay",              semi:1,autoQual:false},
+  {id:"ME",flag:"🇲🇪",name:"Montenegro",  artist:"Tamara Živković",                 song:"Nova Zora",              semi:1,autoQual:false},
+  {id:"PT",flag:"🇵🇹",name:"Portugal",    artist:"Bandidos do Cante",               song:"Rosa",                   semi:1,autoQual:false},
+  {id:"SM",flag:"🇸🇲",name:"San Marino",  artist:"SENHIT feat. Boy George",         song:"Superstar",              semi:1,autoQual:false},
+  {id:"EE",flag:"🇪🇪",name:"Estland",     artist:"Vanilla Ninja",                   song:"Too Epic To Be True",    semi:1,autoQual:false},
+  // ── Halbfinale 2 (14. Mai) — qualifiziert: AL AU BG CY CZ DK MT NO RO UA ──
+  {id:"AL",flag:"🇦🇱",name:"Albanien",    artist:"Alis",                            song:"Nân",                    semi:2,autoQual:false},
+  {id:"AU",flag:"🇦🇺",name:"Australien",  artist:"Delta Goodrem",                   song:"Eclipse",                semi:2,autoQual:false},
+  {id:"BG",flag:"🇧🇬",name:"Bulgarien",   artist:"DARA",                            song:"Bangaranga",             semi:2,autoQual:false},
+  {id:"CY",flag:"🇨🇾",name:"Zypern",      artist:"Antigoni",                        song:"JALLA",                  semi:2,autoQual:false},
+  {id:"CZ",flag:"🇨🇿",name:"Tschechien",  artist:"Daniel Žižka",                   song:"CROSSROADS",             semi:2,autoQual:false},
+  {id:"DK",flag:"🇩🇰",name:"Dänemark",    artist:"Søren Torpegaard Lund",           song:"Før vi går hjem",        semi:2,autoQual:false},
+  {id:"MT",flag:"🇲🇹",name:"Malta",       artist:"AIDAN",                           song:"Bella",                  semi:2,autoQual:false},
+  {id:"NO",flag:"🇳🇴",name:"Norwegen",    artist:"JONAS LOVV",                      song:"Ya Ya Ya",               semi:2,autoQual:false},
+  {id:"RO",flag:"🇷🇴",name:"Rumänien",    artist:"Alexandra Căpitănescu",           song:"Choke Me",               semi:2,autoQual:false},
+  {id:"UA",flag:"🇺🇦",name:"Ukraine",     artist:"LELÉKA",                          song:"Ridnym",                 semi:2,autoQual:false},
+  {id:"AM",flag:"🇦🇲",name:"Armenien",    artist:"Simón",                           song:"Paloma Rumba",           semi:2,autoQual:false},
+  {id:"AZ",flag:"🇦🇿",name:"Aserbaidschan",artist:"Jiva",                           song:"Just Go",                semi:2,autoQual:false},
+  {id:"LU",flag:"🇱🇺",name:"Luxemburg",   artist:"Eva Marija",                      song:"Mother Nature",          semi:2,autoQual:false},
+  {id:"LV",flag:"🇱🇻",name:"Lettland",    artist:"Atvara",                          song:"Ēnā",                    semi:2,autoQual:false},
+  {id:"CH",flag:"🇨🇭",name:"Schweiz",     artist:"Veronica Fusaro",                 song:"Alice",                  semi:2,autoQual:false},
 ];
 
 // Semi-1 qualifiers (confirmed 12 Mai) — BE, HR, FI, GR, IL, LT, MD, PL, RS, SE
 // Semi-1 qualifiers confirmed 12 May
-const ESC2026_SEMI1_QUAL = ["BE","HR","FI","GR","IL","LT","MD","PL","RS","SE"];
+const ESC2026_SEMI1_QUAL = ["MD","SE","HR","GR","FI","BE","LT","RS","IL","PL"];
+const ESC2026_SEMI2_QUAL = ["AL","AU","BG","CY","CZ","DK","MT","NO","RO","UA"];
 
 const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,drinking:true};
 // voting_deadline stored in appState.voting_deadline (ISO timestamp or null)
@@ -690,14 +691,15 @@ function render(){
   if(!isHost){
     if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
     if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
-    if(vis.predictions) navItems.push({id:"pred",label:"🔮 Tipps"});
+    if(vis.predictions) navItems.push({id:"pred",label:"🎯 Tipps"});
     if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
     if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
     if(vis.bingo&&mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
+    if(mode==="esc") navItems.push({id:"esclive",label:"📊 Ergebnis"});
     if(vis.comments) navItems.push({id:"comments",label:"💬 Chat"});
     if(vis.drinking) navItems.push({id:"drinking",label:"🍺 Trinken"});
   } else {
-    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:"🎭 Verkünden"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🔮 Tipps"},{id:"testdata",label:"🧪 Testdaten"}];
+    navItems=[{id:"info",label:"ℹ️ Info"},{id:"panel",label:"👑 Panel"},{id:"order",label:"📋 Order"},{id:"results",label:"🏆 Ergebnisse"},{id:"reveal",label:getMode()==="esc"?"🎯 Tipps-Auswertung":"🎭 Verkünden"},{id:"esclive",label:"📊 ESC Live"},{id:"bingo",label:"🎯 Bingo"},{id:"pred",label:"🎯 Tipps"}];
   }
   if(!navItems.find(n=>n.id===activeNav)) activeNav=navItems[0]?.id||"info";
   const navHtml=navItems.map(n=>`<button class="nav-btn ${activeNav===n.id?"active":""}" onclick="setNav('${n.id}')">${n.label}</button>`).join("");
@@ -708,10 +710,13 @@ function render(){
     if(activeNav==="panel")   content=renderHostPanel();
     if(activeNav==="order")   content=renderRunningOrder(true);
     if(activeNav==="results") content=renderResults();
-    if(activeNav==="reveal")  content=buildRevealHostPanel()+buildRevealScreen();
+    if(activeNav==="reveal"){
+      if(getMode()==="esc") content=renderPredictionsAdmin();
+      else content=buildRevealHostPanel()+buildRevealScreen();
+    }
     if(activeNav==="bingo")   content=renderBingoAdmin();
     if(activeNav==="pred")    content=renderPredictionsAdmin();
-    if(activeNav==="testdata") content=renderTestData();
+    if(activeNav==="esclive")  content=renderEscLiveHost();
   } else {
     if(activeNav==="info")     content=renderHelp(false);
     if(activeNav==="song")     content=renderSongSubmit();
@@ -720,6 +725,7 @@ function render(){
     if(activeNav==="vote")     content=renderVoting();
     if(activeNav==="results")  content=renderResults();
     if(activeNav==="bingo")    content=renderBingo();
+    if(activeNav==="esclive")  content=renderEscLiveGuest();
     if(activeNav==="comments") content=renderComments();
     if(activeNav==="drinking") content=renderDrinking();
   }
@@ -744,6 +750,13 @@ function render(){
 
 
 // ── ESC FINALIST MANAGER ──────────────────────────────────────────────────
+async function resetEscFinalistsToConfirmed(){
+  const confirmed = [...ESC2026_SEMI1_QUAL, ...ESC2026_SEMI2_QUAL];
+  await saveState({esc_finalists: confirmed});
+  showToast("✅ Finalisten auf bestätigte Semi-Qualifizierer zurückgesetzt");
+  render();
+}
+
 async function toggleEscFinalist(countryId){
   const current = appState.esc_finalists || [];
   const updated = current.includes(countryId) ? current.filter(id=>id!==countryId) : [...current, countryId];
@@ -761,6 +774,7 @@ function renderEscFinalistManager(){
   return `<div class="card">
     <div class="card-title">🏆 ESC 2026 Finalisten (${totalQ} / 25)</div>
     <div class="info">Auto-qualifiziert: 🇦🇹 🇫🇷 🇩🇪 🇮🇹 🇬🇧 — Hake nach den Halbfinalen die qualifizierten Länder ab. Jeweils <strong>10</strong> pro Semi.</div>
+    <button onclick="resetEscFinalistsToConfirmed()" style="border:none;border-radius:8px;padding:6px 12px;background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3);font-size:.75rem;font-weight:600;cursor:pointer;margin-bottom:8px;-webkit-tap-highlight-color:transparent">✅ Auf bestätigte Qualifizierer zurücksetzen</button>
     ${semi1Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 1: 10/10 qualifiziert</div>':(semi1Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 1: '+semi1Q+'/10 qualifiziert</div>':'')}    ${semi2Q>=10?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(0,212,180,.1);border-radius:6px;color:var(--teal);margin-bottom:6px">✅ Semi 2: 10/10 qualifiziert</div>':(semi2Q>0?'<div style="font-size:.75rem;padding:4px 8px;background:rgba(255,201,71,.1);border-radius:6px;color:var(--gold);margin-bottom:6px">⏳ Semi 2: '+semi2Q+'/10 qualifiziert</div>':'')}    
     <div style="font-size:.75rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Halbfinale 1 (12. Mai)</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
@@ -774,12 +788,9 @@ function renderEscFinalistManager(){
 }
 
 function getEscFinalists(){
-  // If host hasn't set anything yet, pre-load Semi-1 qualifiers as default
   const stored = appState.esc_finalists;
-  if(!stored || stored.length === 0){
-    return ESC2026_ALL.filter(c => c.autoQual || ESC2026_SEMI1_QUAL.includes(c.id));
-  }
-  return ESC2026_ALL.filter(c => c.autoQual || stored.includes(c.id));
+  const quals = (stored && stored.length > 0) ? stored : [...ESC2026_SEMI1_QUAL, ...ESC2026_SEMI2_QUAL];
+  return ESC2026_ALL.filter(c => c.autoQual || quals.includes(c.id));
 }
 
 // ── ESC VOTE PREDICTIONS ──────────────────────────────────────────────────
@@ -844,27 +855,44 @@ function hostExportEvent(){
 
 // ESC 2026 official YouTube IDs (official Eurovision channel)
 const ESC2026_YOUTUBE = {
-  "AT": "rjqZEDO-kRs",  // Cosmó - Tanzschein
-  "FR": "P-6gRMlY5K4",  // Louane - Regarde !
-  "DE": "E0UULHhL-S8",  // Sarah Engels - Fire
-  "IT": "9LhFCHyBOVE",  // Sal Da Vinci - Per Sempre Sì
-  "UK": "IyKFdDaFNok",  // Remember Monday - What The Hell Just Happened?
-  "MD": "SViojHjNSzc",  // Satoshi - Viva, Moldova!
-  "SE": "2oiMC7YIIAM",  // FELICIA - My System
-  "HR": "mDFBTdToRmw",  // LELEK - Andromeda (reuse from our party)
-  "GR": "6Gha9xrM1Ow",  // Akylas - Ferto
-  "FI": "OnzkhQsmSag",  // Linda Lampenius x Pete Parkkonen - Liekinheitin
-  "BE": "3_e8bQ6i43o",  // ESSYLA - Dancing on the Ice
-  "LT": "PaEnaoydUUo",  // Lion Ceccah - Sólo Quiero Más
-  "RS": "KsMKOx6fumc",  // LAVINA - Kraj Mene
-  "IL": "dQw4w9WgXcQ",  // Noam Bettan - Michelle (placeholder)
-  "PL": "ZyhrYis509A",  // ALICJA - Pray (placeholder)
-  // Semi-2 (to be filled after qualifiers announced)
-  "AL": "",  "AM": "",  "AU": "",  "AZ": "",  "BG": "",
-  "CY": "",  "CZ": "",  "DK": "",  "LV": "",  "LU": "",
-  "MT": "",  "NO": "",  "RO": "",  "CH": "",  "UA": "",
+  // Auto-qualifiziert
+  "AT": "zPGP9ZphxiY",  // Cosmó – Tanzschein ✅
+  "FR": "Pj2DTSLcNnI",  // Monroe – Regarde ! ✅
+  "DE": "AzvRc3eH_rA",  // Sarah Engels – Fire ✅
+  "IT": "V406FAGkhyQ",  // Sal Da Vinci – Per Sempre Sì ✅
+  "UK": "-hu6R3ZnOdY",  // Look Mum No Computer – Eins, Zwei, Drei ✅
+  // Semi-1 Qualifizierer
+  "MD": "SViojHjNSzc",  // Satoshi – Viva, Moldova! ✅
+  "SE": "ibbfS8iG450",  // FELICIA – My System ✅
+  "HR": "vl7Jqnw10sU",  // LELEK – Andromeda ✅
+  "GR": "NGwNTd_DA9s",  // Akylas – Ferto ✅
+  "FI": "9bfwNIYb96Q",  // Linda Lampenius – Liekinheitin ✅
+  "BE": "9sfI4g6DWTU",  // ESSYLA – Dancing on the Ice ✅
+  "LT": "0H-PXnbhG7A",  // Katažyna – Sólo Quiero Más ✅
+  "RS": "uyfdKvR1nJM",  // LAVINA – Kraj Mene (live) ✅
+  "IL": "xWCnWSoG8nI",  // Noam Bettan – Michelle ✅
+  "PL": "q78cnYIoF9Y",  // ALICJA – Pray ✅
+  // Semi-2 Qualifizierer
+  "AL": "Sfvb761EEcM",  // Alis – Nân ✅
+  "AU": "_08I6mjHSLA",  // Delta Goodrem – Eclipse ✅
+  "BG": "J3oGYo_mekw",  // DARA – Bangaranga ✅
+  "CY": "TzSs51BiQrE",  // Antigoni – JALLA ✅
+  "CZ": "6ea25aRGpLo",  // Daniel Žižka – CROSSROADS ✅
+  "DK": "lqXYe1SHNZA",  // Søren Torpegaard Lund – Før vi går hjem ✅
+  "MT": "CW6mQLBh6Js",  // AIDAN – Bella ✅
+  "NO": "pUjWzQ671MQ",  // JONAS LOVV – Ya Ya Ya ✅
+  "RO": "yn0YmI0dPb8",  // Alexandra Căpitănescu – Choke Me ✅
+  "UA": "OJ1x2aiL7ks",  // LELÉKA – Ridnym ✅
 };
 
+
+// ESC 2026 Finale — Offizielle Running Order (16. Mai 2026)
+// Quelle: Wikipedia (de) Eurovision Song Contest 2026
+const ESC2026_RUNNING_ORDER = [
+  "DK","DE","IL","BE","AL","GR","UA","AU","RS","MT",
+  "CZ","BG","HR","UK","FR","MD","FI","PL","LT","SE",
+  "CY","IT","NO","RO","AT"
+];
 
 // ── AUTO-FILL ESC SONGS ───────────────────────────────────────────────────
 async function hostAutoFillEscSongs(){
@@ -873,16 +901,192 @@ async function hostAutoFillEscSongs(){
     showToast("Erst Finalisten im Panel markieren!");
     return;
   }
-  // No confirm() - mobile browsers block it. Just do it directly.
-  const songs = finalists.map(c => ({
+  // Sort by official running order
+  const finalistIds = finalists.map(c=>c.id);
+  const ordered = ESC2026_RUNNING_ORDER
+    .filter(id => finalistIds.includes(id))
+    .map(id => ESC2026_ALL.find(c=>c.id===id))
+    .filter(Boolean);
+  // Append any finalists not in running order at end
+  finalists.forEach(c=>{ if(!ordered.find(o=>o.id===c.id)) ordered.push(c); });
+
+  const songs = ordered.map(c => ({
     title: c.flag + " " + c.name + " – " + c.artist + " – " + c.song,
     youtube_url: ESC2026_YOUTUBE[c.id] ? "https://youtube.com/watch?v=" + ESC2026_YOUTUBE[c.id] : ""
   }));
 
+  // Save directly — no need to go through input fields
   await saveState({running_order: songs});
-  await loadAll();
-  showToast("✅ " + songs.length + " Songs eingetragen!");
+  appState = {...appState, running_order: songs};
+  showToast("✅ " + songs.length + " Songs gespeichert!");
+  // Switch to Order tab so user can see the result immediately
+  activeNav = "order";
   render();
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// 📊 ESC LIVE — Host Input + Guest View
+// ════════════════════════════════════════════════════════════════════
+let _escLive = {}; // local edits before saving
+
+async function saveEscResult(countryId, field, value){
+  const current = JSON.parse(JSON.stringify(appState.esc_results || {}));
+  const country = current[countryId] || {};
+  country[field] = Number(value)||0;
+  if(field==="jury") country.total = (Number(value)||0) + (country.tele||0);
+  if(field==="tele") country.total = (country.jury||0) + (Number(value)||0);
+  current[countryId] = country;
+  // Update local state immediately so host sees it
+  appState = {...appState, esc_results: current};
+  // Save to DB — Realtime will push to guests
+  await saveState({esc_results: current});
+}
+
+function renderEscLiveHost(){
+  const finalists = getEscFinalists();
+  const results = appState.esc_results || {};
+  const ordered = ESC2026_RUNNING_ORDER
+    .filter(id=>finalists.find(c=>c.id===id))
+    .map(id=>finalists.find(c=>c.id===id))
+    .filter(Boolean);
+  finalists.forEach(c=>{ if(!ordered.find(o=>o.id===c.id)) ordered.push(c); });
+
+  const rows = ordered.map((c,i)=>{
+    const r = results[c.id]||{};
+    const jury = r.jury||"";
+    const tele = r.tele||"";
+    const total = (r.jury||0)+(r.tele||0);
+    return `<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.75rem;color:var(--gray);width:20px;text-align:right;flex-shrink:0">${i+1}</div>
+      <div style="font-size:1rem;flex-shrink:0">${c.flag}</div>
+      <div style="flex:1;min-width:0;font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+      <input type="number" min="0" max="600" placeholder="Jury" value="${jury}"
+        onchange="saveEscResult('${c.id}','jury',this.value)"
+        style="width:52px;padding:4px 5px;font-size:.78rem;margin:0;text-align:center"/>
+      <input type="number" min="0" max="600" placeholder="TV"
+        value="${tele}"
+        onchange="saveEscResult('${c.id}','tele',this.value)"
+        style="width:52px;padding:4px 5px;font-size:.78rem;margin:0;text-align:center"/>
+      <div style="width:42px;text-align:right;font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:${total>0?'var(--teal)':'var(--border)'}">
+        ${total>0?total:"—"}
+      </div>
+    </div>`;
+  }).join("");
+
+  // Leaderboard sidebar
+  const ranked = Object.entries(results)
+    .map(([id,r])=>({id,total:(r.jury||0)+(r.tele||0),c:finalists.find(f=>f.id===id)}))
+    .filter(r=>r.c&&r.total>0)
+    .sort((a,b)=>b.total-a.total);
+
+  const leaderboard = ranked.length>0
+    ? ranked.slice(0,10).map((r,i)=>`<div class="stat-row">
+        <span>${["🥇","🥈","🥉"][i]||i+1+"."} ${r.c.flag} ${r.c.name}</span>
+        <span class="stat-val">${r.total}</span>
+      </div>`).join("")
+    : `<div class="info">Noch keine Punkte.</div>`;
+
+  return `<div class="card">
+    <div class="card-title">📊 ESC Live-Eingabe</div>
+    <div class="info" style="margin-bottom:8px">Jury- und Publikumspunkte live eintragen. Gesamt wird automatisch berechnet und sofort für alle Gäste sichtbar.</div>
+    <div style="display:flex;gap:6px;font-size:.7rem;font-weight:700;color:var(--gray);padding:0 0 4px 0;text-transform:uppercase;letter-spacing:.05em">
+      <div style="width:20px"></div><div style="width:20px"></div>
+      <div style="flex:1">Land</div>
+      <div style="width:52px;text-align:center">Jury</div>
+      <div style="width:52px;text-align:center">Publikum</div>
+      <div style="width:42px;text-align:right">∑</div>
+    </div>
+    ${rows}
+  </div>
+  <div class="card">
+    <div class="card-title">🏆 Aktuelles Ranking</div>
+    ${leaderboard}
+  </div>`;
+}
+
+function renderEscLiveGuest(){
+  const finalists = getEscFinalists();
+  const results = appState.esc_results || {};
+  const hasResults = Object.keys(results).length > 0;
+
+  if(!hasResults)
+    return `<div class="card"><div class="info" style="text-align:center;padding:20px">⏳ Der Host trägt gerade die ESC-Punkte ein — die Rangliste erscheint automatisch sobald Punkte da sind.</div></div>`;
+
+  // Build ranked arrays for ESC total, jury, tele
+  const escAll = finalists.map(c => {
+    const r = results[c.id]||{};
+    return {id:c.id, c, jury:r.jury||0, tele:r.tele||0, total:(r.jury||0)+(r.tele||0)};
+  }).filter(r => r.total > 0 || r.jury > 0 || r.tele > 0);
+
+  const byTotal = [...escAll].sort((a,b)=>b.total-a.total);
+  const byJury  = [...escAll].sort((a,b)=>b.jury-a.jury);
+  const byTele  = [...escAll].sort((a,b)=>b.tele-a.tele);
+
+  // Party votes: map song title → country id by matching running order
+  const {totals, songs} = calcResults ? calcResults() : {totals:{},songs:[]};
+  // Build partyPts by country id via running_order match
+  const partyPts = {};
+  finalists.forEach(c => {
+    const songIdx = songs.findIndex(s => s.title && s.title.includes(c.name));
+    if(songIdx >= 0 && totals[songIdx] !== undefined) {
+      partyPts[c.id] = Number(totals[songIdx]);
+    }
+  });
+  const byParty = finalists
+    .filter(c => partyPts[c.id] !== undefined)
+    .sort((a,b) => (partyPts[b.id]||0) - (partyPts[a.id]||0));
+
+  // Rank lookup helpers
+  const rankOf = (arr, id) => arr.findIndex(r=>(r.id||r.id)===id) + 1 || "—";
+
+  // Full comparison table — all 25 sorted by ESC total
+  const tableRows = byTotal.map((r, i) => {
+    const rankTotal = i+1;
+    const rankJury  = byJury.findIndex(x=>x.id===r.id)+1;
+    const rankTele  = byTele.findIndex(x=>x.id===r.id)+1;
+    const partyRank = byParty.findIndex(c=>c.id===r.id)+1;
+    const partyPt   = partyPts[r.id]||0;
+    const medal     = ["🥇","🥈","🥉"][i]||"";
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 4px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:var(--teal)">${medal||rankTotal}</td>
+      <td style="padding:5px 4px;font-size:.95rem">${r.c.flag}</td>
+      <td style="padding:5px 4px;font-size:.75rem;font-weight:600;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.c.name}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:var(--gray)">${r.jury||"—"}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:var(--gray)">${r.tele||"—"}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.8rem;font-weight:700;color:var(--teal)">${r.total}</td>
+      <td style="padding:5px 4px;text-align:right;font-size:.75rem;color:${partyPt>0?"var(--gold)":"var(--border)"}">${partyPt||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--gray)">${rankJury||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--gray)">${rankTele||"—"}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:var(--teal)">${rankTotal}</td>
+      <td style="padding:5px 4px;text-align:center;font-size:.7rem;color:${partyRank>0?"var(--gold)":"var(--border)"}">${partyRank||"—"}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="card" style="padding:12px 8px">
+    <div class="card-title" style="margin-bottom:10px">📊 ESC-Ergebnis vs. Party-Voting</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">#</th>
+            <th style="padding:4px"></th>
+            <th style="padding:4px;text-align:left;font-size:.65rem;color:var(--gray);font-weight:600">Land</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gray);font-weight:600">Jury</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gray);font-weight:600">TV</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--teal);font-weight:600">∑</th>
+            <th style="padding:4px;text-align:right;font-size:.65rem;color:var(--gold);font-weight:600">Party</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">RJ</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gray);font-weight:600">RTV</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--teal);font-weight:600">R∑</th>
+            <th style="padding:4px;text-align:center;font-size:.65rem;color:var(--gold);font-weight:600">RP</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:.62rem;color:var(--gray);margin-top:8px;text-align:right">RJ=Rang Jury · RTV=Rang Publikum · R∑=Rang Gesamt · RP=Rang Party</div>
+  </div>`;
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
@@ -902,7 +1106,7 @@ function renderLogin(){
     <button class="btn btn-teal" style="margin-top:10px" onclick="doLogin()">Einloggen / Registrieren 🎤</button>
     ${_showHostPw
       ? '<div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px"><input id="hpw" type="password" placeholder="Host-Passwort" style="margin-bottom:8px"/><div style="display:flex;gap:8px"><button class="btn btn-gold" style="flex:1;margin:0;padding:9px" onclick="doHostLogin()">Einloggen</button><button class="btn btn-ghost" style="flex:1;margin:0;padding:9px" onclick="_showHostPw=false;render()">Abbrechen</button></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.13e</span></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px"><a href="#" onclick="_showHostPw=true;render();return false;" style="font-size:.73rem;color:var(--gray)">Host-Zugang</a><span style="font-size:.68rem;color:var(--border);font-family:\'DM Sans\',sans-serif;font-weight:500">v1.2</span></div>'
     }
   </div></div>`;
 }
@@ -1182,9 +1386,20 @@ function renderBingo(){
 }
 
 function renderBingoAdmin(){
-  return `<div class="card">
+  const n=allBingos.length;
+  return `<div class="card" style="${n>0?"border-color:rgba(255,201,71,.4);":""}"">
     <div class="card-title">🎯 Bingo-Status</div>
-    ${allBingos.length===0?`<div class="info">Noch niemand hat Bingo.</div>`:allBingos.map((b,i)=>`<div class="stat-row"><span>${i+1}. ${b.nickname}</span><span style="font-size:.7rem;color:var(--gray)">${fmtTime(b.created_at)}</span></div>`).join("")}
+    ${n===0
+      ? `<div class="info">Noch niemand hat Bingo.</div>`
+      : `<div style="background:rgba(255,201,71,.12);border:1px solid rgba(255,201,71,.3);border-radius:10px;padding:10px;margin-bottom:10px;text-align:center">
+          <div style="font-size:1.6rem">🎉</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--gold);letter-spacing:.05em">${n===1?"1 BINGO gerufen!":n+" BINGOS gerufen!"}</div>
+        </div>
+        ${allBingos.map((b,i)=>`<div class="stat-row">
+          <span style="font-weight:600">${["🥇","🥈","🥉"][i]||"  "} ${b.nickname}</span>
+          <span style="font-size:.7rem;color:var(--gray)">${fmtTime(b.created_at)}</span>
+        </div>`).join("")}`
+    }
   </div>
   <div class="info">Das Bingo läuft bei den Gästen lokal — kein Sync der einzelnen Karten. Nur der Bingo-Ruf wird allen angezeigt.</div>`;
 }
@@ -1209,6 +1424,26 @@ function renderComments(){
 }
 
 // ── PREDICTIONS ───────────────────────────────────────────────────────────
+
+function renderTop5Selector(category, label){
+  const saved=currentUser?.predictions||{};
+  const finalists=getMode()==="esc"?getEscFinalists():[];
+  return '<div style="flex:1;min-width:0">'
+    +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.82rem;letter-spacing:.06em;color:var(--teal);margin-bottom:7px;text-align:center">'+label+'</div>'
+    +[1,2,3,4,5].map(i=>{
+      const key=category+"_"+i;
+      const val=(_predictions[key])||(saved[key])||"";
+      const opts=finalists.map(c=>'<option value="'+c.id+'" '+(val===c.id?'selected':'')+'>'+c.flag+' '+c.name+'</option>').join("");
+      return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">'
+        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;width:16px;text-align:right;color:var(--gray);flex-shrink:0">'+i+'.</div>'
+        +(finalists.length>0
+          ? '<select onchange="_predictions[\''+key+'\']=this.value" style="flex:1;padding:5px 3px;font-size:.73rem;background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:7px"><option value="">— wählen —</option>'+opts+'</select>'
+          : '<input type="text" placeholder="Land…" value="'+val.replace(/"/g,"&quot;")+'" oninput="_predictions[\''+key+'\']=this.value" style="flex:1;padding:5px 6px;font-size:.75rem;margin:0"/>'
+        )+'</div>';
+    }).join("")
+    +'</div>';
+}
+
 function renderPredictions(){
   const vis=appState.visibility;
   if(!vis.predictions) return `<div class="card"><div class="info-locked">🔒 Predictions sind noch nicht geöffnet.</div></div>`;
@@ -1220,23 +1455,132 @@ function renderPredictions(){
       oninput="_predictions['${p.id}']=this.value"/>
   </div>`).join("");
   const hasSaved=Object.keys(saved).length>0;
+  const isEsc=getMode()==="esc";
   return `<div class="card">
-    <div class="card-title">🔮 Deine Predictions</div>
-    <div class="info">Tippe deine Tipps ab — der Host kann sie am Ende aufdecken und vergleichen.</div>
+    <div class="card-title">🎯 Deine Tipps</div>
+    <div class="info">Tippe deine Vorhersagen — der Host kann sie am Ende aufdecken und vergleichen.</div>
     ${hasSaved?`<div class="alert alert-gold">✅ Bereits gespeichert — du kannst jederzeit ändern.</div>`:""}
     ${rows}
-    ${getMode()==="esc"?renderEscVotePredictions():""}
-    <button class="btn btn-teal" onclick="doSubmitPredictions()">Speichern 🔮</button>
+    ${isEsc?`<div style="margin-top:14px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.88rem;letter-spacing:.06em;color:var(--gold);margin-bottom:6px">🏆 TOP-5 TIPPS</div>
+      <div style="font-size:.72rem;color:var(--gray);margin-bottom:10px">Wähle dein Top 5 für Jury, Publikum und Gesamt.</div>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        ${renderTop5Selector("top5_jury","⚖️ Jury")}
+        ${renderTop5Selector("top5_tv","📺 Publikum")}
+        ${renderTop5Selector("top5_gesamt","🏆 Gesamt")}
+      </div>
+    </div>`:""}
+    <button class="btn btn-teal" onclick="doSubmitPredictions()">💾 Tipps speichern</button>
   </div>`;
 }
 
 function renderPredictionsAdmin(){
   const withPreds=allUsers.filter(u=>u.predictions&&Object.keys(u.predictions).length>0);
-  if(!withPreds.length) return `<div class="card"><div class="info">Noch keine Predictions eingegangen.</div></div>`;
-  return withPreds.map(u=>`<div class="card">
-    <div class="card-title" style="color:var(--gold)">${u.nickname}</div>
-    ${PREDICTIONS.map(p=>`<div class="stat-row"><span style="font-size:.78rem;color:var(--gray)">${p.label}</span><span style="font-size:.82rem;font-weight:600">${u.predictions[p.id]||"—"}</span></div>`).join("")}
+  if(!withPreds.length) return `<div class="card"><div class="info">Noch keine Tipps eingegangen.</div></div>`;
+
+  const mode=getMode();
+  if(mode!=="esc") {
+    // Party mode: show raw predictions
+    return withPreds.map(u=>`<div class="card">
+      <div class="card-title" style="color:var(--gold)">${u.nickname}</div>
+      ${PREDICTIONS.map(p=>`<div class="stat-row"><span style="font-size:.78rem;color:var(--gray)">${p.label}</span><span style="font-size:.82rem;font-weight:600">${u.predictions[p.id]||"—"}</span></div>`).join("")}
+    </div>`).join("");
+  }
+
+  // ESC mode: evaluate predictions against actual results
+  const results = appState.esc_results || {};
+  const finalists = getEscFinalists();
+  const hasResults = Object.keys(results).length > 0;
+
+  // Build actual top-5 for jury, tele, total
+  const escSorted = (field) => finalists
+    .map(c=>({id:c.id,pts:(results[c.id]||{})[field]||0}))
+    .filter(r=>r.pts>0)
+    .sort((a,b)=>b.pts-a.pts)
+    .slice(0,5)
+    .map(r=>r.id);
+
+  const actualJury   = escSorted("jury");
+  const actualTele   = escSorted("tele");
+  const actualTotal  = escSorted("total")||escSorted("jury").map((id,i)=>{
+    // fallback: compute total
+    return finalists.map(c=>({id:c.id,total:(results[c.id]?.jury||0)+(results[c.id]?.tele||0)}))
+      .sort((a,b)=>b.total-a.total).slice(0,5).map(r=>r.id);
+  })[0];
+  const winner = actualTotal[0]||null;
+
+  // Score each user
+  const scored = withPreds.map(u=>{
+    const p = u.predictions||{};
+    let score = 0;
+    const details = [];
+
+    // Winner
+    const theirWinner = finalists.find(c=>c.name.toLowerCase().includes((p.winner||"").toLowerCase()))?.id
+      || (p.winner||"").toUpperCase();
+    const winnerHit = winner && (theirWinner===winner || p.winner===winner);
+    if(winnerHit){ score+=5; details.push("🏆 Sieger richtig: +5"); }
+
+    // Top-5 hits
+    const checkTop5 = (cat, actual, label) => {
+      let hits=0;
+      [1,2,3,4,5].forEach(i=>{
+        const v=p[cat+"_"+i];
+        if(v && actual.includes(v)){ hits++; score+=2; }
+      });
+      if(hits>0) details.push(`${label}: ${hits}/5 Treffer (+${hits*2})`);
+    };
+    if(hasResults){
+      checkTop5("top5_jury", actualJury, "⚖️ Jury");
+      checkTop5("top5_tv",   actualTele, "📺 TV");
+      checkTop5("top5_gesamt", actualTotal.length?actualTotal:actualJury, "🏆 Gesamt");
+    }
+
+    // Exact position bonus
+    if(hasResults && actualTotal.length){
+      [1,2,3,4,5].forEach(i=>{
+        if(p["top5_gesamt_"+i] === actualTotal[i-1]){ score+=3; details.push(`🎯 Pos ${i} exakt: +3`); }
+      });
+    }
+
+    return {u, score, details, winnerHit};
+  }).sort((a,b)=>b.score-a.score);
+
+  // Leaderboard
+  const leaderboard = scored.map((s,i)=>`<div class="stat-row" style="${i===0?"background:rgba(255,201,71,.08);border-radius:8px;padding:4px 8px":""}">
+    <span style="font-weight:600">${["🥇","🥈","🥉"][i]||i+1+"."} ${s.u.nickname}${s.winnerHit?" 🎯":""}</span>
+    <span class="stat-val" style="color:var(--gold)">${s.score} Pkt</span>
   </div>`).join("");
+
+  // Detail cards
+  const details = scored.map(s=>`<div class="card">
+    <div class="card-title" style="color:var(--gold);display:flex;justify-content:space-between">
+      <span>${s.u.nickname}</span><span>${s.score} Pkt</span>
+    </div>
+    ${s.details.length?s.details.map(d=>`<div style="font-size:.75rem;color:var(--teal);margin-bottom:3px">✓ ${d}</div>`).join("")
+      :`<div style="font-size:.75rem;color:var(--gray)">Keine Treffer</div>`}
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+      ${PREDICTIONS.map(p_=>`<div class="stat-row"><span style="font-size:.73rem;color:var(--gray)">${p_.label}</span><span style="font-size:.78rem">${s.u.predictions[p_.id]||"—"}</span></div>`).join("")}
+      ${["jury","tv","gesamt"].map(cat=>{
+        const vals=[1,2,3,4,5].map(i=>{
+          const id=s.u.predictions["top5_"+cat+"_"+i];
+          const c=finalists.find(f=>f.id===id);
+          return c?c.flag+" "+c.name:"—";
+        });
+        const labels={"jury":"⚖️ Jury","tv":"📺 TV","gesamt":"🏆 Gesamt"};
+        return `<div style="margin-top:5px"><div style="font-size:.7rem;color:var(--gray);font-weight:600;margin-bottom:3px">${labels[cat]} Top 5</div>
+        <div style="font-size:.75rem">${vals.join(" · ")}</div></div>`;
+      }).join("")}
+    </div>
+  </div>`).join("");
+
+  return `<div class="card">
+    <div class="card-title">🎯 Tipp-Auswertung</div>
+    ${!hasResults?`<div class="alert alert-gold">⚠️ Noch keine ESC-Ergebnisse eingetragen — Punkte werden berechnet sobald der Host Daten eingibt.</div>`:""}
+    <div style="font-size:.72rem;color:var(--gray);margin-bottom:10px">Wertung: Sieger richtig +5 · Top-5 Treffer +2 · Exakte Position +3</div>
+    ${leaderboard}
+  </div>
+  ${details}`;
 }
 
 // ── DRINKING GAME ─────────────────────────────────────────────────────────
@@ -1745,130 +2089,6 @@ renderHostPanel = function(){
   );
 };
 
-// ════════════════════════════════════════════════════════════════════
-// 🧪 TESTDATEN — nur im Test-Branch
-// ════════════════════════════════════════════════════════════════════
-const TD_SONGS=[
-  {title:"Total Eclipse of the Heart – Bonnie Tyler", youtube_url:"https://youtube.com/watch?v=lcOxhH8N3Bo"},
-  {title:"Africa – Toto",                             youtube_url:"https://youtube.com/watch?v=FTQbiNvZqaY"},
-  {title:"Never Gonna Give You Up – Rick Astley",     youtube_url:"https://youtube.com/watch?v=dQw4w9WgXcQ"},
-  {title:"Barbie Girl – Aqua",                        youtube_url:"https://youtube.com/watch?v=ZyhrYis509A"},
-  {title:"Mambo No. 5 – Lou Bega",                    youtube_url:"https://youtube.com/watch?v=EIEHPaL8PPk"},
-  {title:"Freed from Desire – Gala",                  youtube_url:"https://youtube.com/watch?v=CEMn4JtdMkQ"},
-  {title:"Dragostea Din Tei – O-Zone",                youtube_url:"https://youtube.com/watch?v=YnopHCL1Jk8"},
-  {title:"Cotton Eye Joe – Rednex",                   youtube_url:"https://youtube.com/watch?v=K4RmkMDmDyA"},
-];
-const TD_USERS=[
-  {nickname:"KlausFromMunich", song_idx:1, pref:[1,0,2,3]},
-  {nickname:"SabineRocks",     song_idx:0, pref:[0,2,4,6]},
-  {nickname:"DJ_Axel",         song_idx:7, pref:[7,5,3,1]},
-  {nickname:"IngridPop",       song_idx:3, pref:[3,6,0,5]},
-  {nickname:"MarcoBello",      song_idx:4, pref:[4,2,7,0]},
-  {nickname:"ElenaVibes",      song_idx:5, pref:[5,3,1,6]},
-  {nickname:"TomTranceMaster", song_idx:6, pref:[6,4,2,7]},
-  {nickname:"NinaStardust",    song_idx:2, pref:[2,0,5,3]},
-];
-
-function tdMakeBallot(pref){
-  const PTS=[12,10,8,6,5,4,3,1];
-  const b={};
-  KATEGORIEN.forEach((k,ki)=>{
-    b[k.id]={};
-    const order=[...Array(8).keys()].sort((a,c)=>{
-      const ia=pref.indexOf(a),ic=pref.indexOf(c);
-      if(ia>=0&&ic>=0)return ia-ic;
-      if(ia>=0)return -1;if(ic>=0)return 1;
-      return(a+ki*3)%8-(c+ki*3)%8;
-    });
-    order.forEach((si,rank)=>{b[k.id][si]=PTS[rank];});
-  });
-  return b;
-}
-
-async function tdLoadUsers(){
-  if(!confirm("⚠️ Alle bestehenden Nutzer löschen und 8 Demo-Nutzer anlegen?\n\nDies überschreibt alle vorhandenen Accounts!")) return;
-  showToast("Lade Testnutzer…");
-  // Delete all users first
-  await sb.from("esc_users").delete().neq("id",0);
-  // Insert demo users
-  const rows=TD_USERS.map((u,i)=>({
-    nickname:u.nickname,
-    nickname_lower:u.nickname.toLowerCase(),
-    pin_hash:hashPin("1234"),
-    song_title:null, youtube_url:null,
-    ballot:null, has_voted:false, predictions:null,
-  }));
-  const {error}=await sb.from("esc_users").insert(rows);
-  if(error){showToast("Fehler: "+error.message);return;}
-  await loadAll();
-  showToast("✅ 8 Testnutzer angelegt (PIN: 1234)");
-  render();
-}
-
-async function tdLoadSongs(){
-  if(!confirm("⚠️ Running Order mit 8 Demo-Songs überschreiben?")) return;
-  showToast("Lade Demo-Songs…");
-  // Assign songs to users by song_idx
-  for(const u of TD_USERS){
-    const song=TD_SONGS[u.song_idx];
-    await sb.from("esc_users")
-      .update({song_title:song.title, youtube_url:song.youtube_url})
-      .ilike("nickname_lower",u.nickname.toLowerCase());
-  }
-  // Set running order in state
-  await saveState({running_order:TD_SONGS});
-  await loadAll();
-  showToast("✅ Running Order mit 8 Songs gesetzt");
-  render();
-}
-
-async function tdLoadVotes(){
-  if(!confirm("⚠️ Alle 8 Nutzer mit Demo-Votes befüllen?\n\nBestehende Votes werden überschrieben!")) return;
-  showToast("Lade Demo-Votes…");
-  for(const u of TD_USERS){
-    const ballot=tdMakeBallot(u.pref);
-    await sb.from("esc_users")
-      .update({ballot:ballot, has_voted:true})
-      .ilike("nickname_lower",u.nickname.toLowerCase());
-  }
-  await loadAll();
-  showToast("✅ Votes für alle 8 Nutzer gesetzt");
-  render();
-}
-
-function renderTestData(){
-  const userCount=allUsers.length;
-  const songCount=allUsers.filter(u=>u.song_title).length;
-  const voteCount=allUsers.filter(u=>u.has_voted).length;
-  const hasRO=(appState.running_order||[]).length>0;
-
-  return`<div class="card" style="border-color:rgba(255,61,127,.3)">
-    <div class="card-title" style="color:var(--pink)">🧪 Testdaten</div>
-    <div class="info">Nur im Test-Branch verfügbar. Jede Aktion erfordert eine Bestätigung und überschreibt bestehende Daten.</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">👥 Schritt 1 — Nutzer anlegen</div>
-    <div class="info">Legt 8 Demo-Nutzer an (alle PIN: <strong>1234</strong>). Löscht alle bestehenden Accounts.</div>
-    <div class="stat-row"><span>Aktuelle Nutzer</span><span class="stat-val">${userCount}</span></div>
-    <button class="btn btn-pink" onclick="tdLoadUsers()">👥 8 Testnutzer anlegen</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🎵 Schritt 2 — Songs setzen</div>
-    <div class="info">Weist jedem Nutzer einen Demo-Song zu und setzt die Running Order.</div>
-    <div class="stat-row"><span>Songs eingereicht</span><span class="stat-val">${songCount}</span></div>
-    <div class="stat-row"><span>Running Order</span><span class="stat-val">${hasRO?appState.running_order.length+" Songs":"—"}</span></div>
-    <button class="btn btn-teal" onclick="tdLoadSongs()" ${userCount===0?"disabled":""}>🎵 Demo-Songs setzen</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🗳 Schritt 3 — Votes befüllen</div>
-    <div class="info">Befüllt alle 8 Nutzer mit vollständigen Demo-Votes. Benötigt Songs aus Schritt 2.</div>
-    <div class="stat-row"><span>Stimmen abgegeben</span><span class="stat-val">${voteCount} / ${userCount}</span></div>
-    <button class="btn btn-gold" onclick="tdLoadVotes()" ${songCount===0?"disabled":""}>🗳 Demo-Votes befüllen</button>
-  </div>`;
-}
 
 init();
 </script>
