@@ -268,6 +268,7 @@ const PREDICTIONS = [
   {id:"winner", label:"🏆 Wer gewinnt?",         type:"dropdown"},
   {id:"last",   label:"🐌 Wer wird Letzter?",     type:"dropdown"},
   {id:"zero",   label:"💀 Wer bekommt 0 Punkte?", type:"dropdown"},
+  {id:"de_place", label:"🇩🇪 Wo landet Deutschland?", type:"place"},
 ];
 
 const MEDALS = ["🥇","🥈","🥉","4.","5.","6.","7.","8.","9.","10.","11.","12.","13.","14.","15.","16.","17.","18.","19.","20.","21.","22.","23.","24.","25.","26."];
@@ -356,7 +357,10 @@ async function loadAll(){
       sb.from("esc_comments").select("*").order("created_at",{ascending:true}).limit(200),
       sb.from("esc_bingos").select("*").order("created_at",{ascending:true}),
     ]);
-    if(sd) appState={...appState,...sd,visibility:{...DEFAULT_VIS,...(sd.visibility||{})}};
+    if(sd){
+      const safeVis = (sd.visibility && typeof sd.visibility==='object') ? sd.visibility : {};
+      appState = {...appState, ...sd, visibility:{...DEFAULT_VIS,...safeVis}};
+    }
     if(ud) allUsers=ud;
     if(cd) allComments=cd;
     if(bd) allBingos=bd;
@@ -404,9 +408,11 @@ function logout(){ localStorage.removeItem("esc_user"); currentUser=null; isHost
 
 // ── State ─────────────────────────────────────────────────────────────────
 async function saveState(partial){
-  const merged={...appState,...partial,visibility:{...appState.visibility,...(partial.visibility||{})}};
+  const curVis = appState.visibility||{...DEFAULT_VIS};
+  const newVis = partial.visibility ? {...curVis,...partial.visibility} : curVis;
+  const merged = {...appState,...partial, visibility:newVis};
   await sb.from("esc_state").upsert({id:1,...merged});
-  appState=merged;
+  appState = merged;
 }
 function getMode(){ return appState.mode||"party"; }
 function getSongCount(){
@@ -429,7 +435,11 @@ function getPointScale(excludeOwn){
 
 // ── Host actions ──────────────────────────────────────────────────────────
 async function hostToggleVisibility(key){
-  await saveState({visibility:{...appState.visibility,[key]:!appState.visibility[key]}});
+  const curVis = appState.visibility||{...DEFAULT_VIS};
+  const newVal = !curVis[key];
+  const newVis = {...curVis, [key]: newVal};
+  appState = {...appState, visibility: newVis}; // update local immediately
+  await sb.from("esc_state").update({visibility: newVis}).eq("id",1);
   render();
 }
 async function hostSetMode(m){ const sc=m==="esc"?25:8; await saveState({mode:m,song_count:sc}); render(); }
@@ -1456,6 +1466,8 @@ function renderPredictions(){
     const val=_predictions[p.id]||saved[p.id]||"";
     const input=(p.type==="dropdown"&&_finalists.length>0)
       ? '<select onchange="_predictions[\''+p.id+'\''+']=this.value" style="width:100%;padding:8px 10px;background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:8px;font-size:.83rem;margin-top:4px"><option value="">— Land wählen —</option>'+_finalists.map(c=>'<option value="'+c.id+'" '+(val===c.id?'selected':'')+'>'+c.flag+' '+c.name+' – '+c.artist+'</option>').join('')+'</select>'
+      : p.type==="place"
+      ? '<select onchange="_predictions[\''+p.id+'\''+']=this.value" style="width:100%;padding:8px 10px;background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:8px;font-size:.83rem;margin-top:4px"><option value="">— Platz wählen —</option>'+Array.from({length:25},(_,i)=>'<option value="'+(i+1)+'" '+(val==String(i+1)?'selected':'')+'>'+(i+1)+'. Platz</option>').join('')+'</select>'
       : '<input class="pred-input" placeholder="'+(p.placeholder||'')+'" maxlength="60" value="'+val.replace(/"/g,"&quot;")+'" oninput="_predictions[\''+p.id+'\''+']=this.value"/>';
     return '<div class="pred-row"><div class="pred-label">'+p.label+'</div>'+input+'</div>';
   }).join("");
