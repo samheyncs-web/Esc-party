@@ -535,12 +535,13 @@ async function postComment(){
 
 // ── Bingo ─────────────────────────────────────────────────────────────────
 function generateBingoCard(){
+  // Only generate if no card exists (locked after first generation)
+  if(_bingoCard) return;
   const shuffled=[...BINGO_TROPES].sort(()=>Math.random()-.5).slice(0,24);
   shuffled.splice(12,0,"⭐ FREE ⭐");
   _bingoCard=shuffled;
   _bingoMarked=new Set([12]); // free space
   saveBingoLocal();
-  render();
 }
 function saveBingoLocal(){
   localStorage.setItem("esc_bingo",JSON.stringify({card:_bingoCard,marked:[..._bingoMarked]}));
@@ -1375,14 +1376,8 @@ function renderResults(){
 function renderBingo(){
   const latestBingos=allBingos.slice(-3);
   const bingoAnnounce=latestBingos.length?`<div class="bingo-announce">🎯 BINGO! ${latestBingos.map(b=>b.nickname).join(", ")} ${latestBingos.length===1?"hat":"haben"} Bingo!</div>`:"";
-  if(!_bingoCard){
-    return `${bingoAnnounce}<div class="card" style="text-align:center;padding:24px">
-      <div style="font-size:2rem;margin-bottom:10px">🎯</div>
-      <div style="font-weight:600;margin-bottom:6px">Deine Bingo-Karte</div>
-      <div class="info" style="text-align:left">Jeder bekommt eine zufällig gemischte Karte. Markiere Felder wenn du sie auf der Bühne siehst. Eine vollständige Reihe = BINGO!</div>
-      <button class="btn btn-teal" onclick="generateBingoCard()">Karte generieren 🎯</button>
-    </div>`;
-  }
+  // Auto-generate card on first visit — locked, no regeneration
+  if(!_bingoCard){ generateBingoCard(); }
   const winCells=getBingoLines();
   const hasBingo=winCells.size>0;
   const cells=_bingoCard.map((t,i)=>{
