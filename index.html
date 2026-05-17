@@ -322,7 +322,7 @@ const ESC2026_ALL = [
 const ESC2026_SEMI1_QUAL = ["MD","SE","HR","GR","FI","BE","LT","RS","IL","PL"];
 const ESC2026_SEMI2_QUAL = ["AL","AU","BG","CY","CZ","DK","MT","NO","RO","UA"];
 
-const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,drinking:true};
+const DEFAULT_VIS = {submit:true,running_order:false,voting:false,results:false,bingo:false,comments:false,predictions:false,pred_results:false,drinking:true};
 // voting_deadline stored in appState.voting_deadline (ISO timestamp or null)
 
 // ── App state ─────────────────────────────────────────────────────────────
@@ -706,6 +706,7 @@ function render(){
     if(mode==="party"&&(vis.submit||currentUser?.song_title)) navItems.push({id:"song",label:"🎵 Song"});
     if(vis.running_order&&hasRO) navItems.push({id:"order",label:"📋 Order"});
     if(vis.predictions) navItems.push({id:"pred",label:"🎯 Tipps"});
+    if(vis.pred_results) navItems.push({id:"pred_results",label:"🏅 Tipp-Auswertung"});
     if(vis.voting&&hasRO) navItems.push({id:"vote",label:"🗳 Voting"});
     if(vis.results) navItems.push({id:"results",label:"🏆 Ergebnisse"});
     if(mode==="esc") navItems.push({id:"bingo",label:"🎯 Bingo"});
@@ -739,6 +740,7 @@ function render(){
     if(activeNav==="vote")     content=renderVoting();
     if(activeNav==="results")  content=renderResults();
     if(activeNav==="bingo")    content=renderBingo();
+    if(activeNav==="pred_results") content=renderPredictionsAdmin();
     if(activeNav==="esclive")  content=renderEscLiveGuest();
     if(activeNav==="comments") content=renderComments();
     if(activeNav==="drinking") content=renderDrinking();
@@ -1670,7 +1672,8 @@ function renderHostPanel(){
   const toggles=[
     ...(mode==="party"?[{key:"submit",label:"Song-Einreichung",desc:"Gäste können Songs einreichen"}]:[]),
     {key:"running_order",label:"Running Order",  desc:"Gäste sehen die Reihenfolge"},
-    {key:"predictions",  label:"Predictions",    desc:"Gäste können Tipps abgeben"},
+    {key:"predictions",  label:"Tipps eingeben",    desc:"Gäste können Tipps abgeben"},
+    {key:"pred_results",  label:"Tipps-Auswertung", desc:"Gäste sehen das Leaderboard und alle Tipps"},
     {key:"voting",       label:"Abstimmung",      desc:"Gäste können abstimmen"},
     {key:"results",      label:"Ergebnisse",      desc:"Gäste sehen das Ergebnis"},
     {key:"bingo",        label:"Bingo",           desc:"Gäste sehen das Bingo-Feld (ESC-Modus)"},
